@@ -82,9 +82,8 @@ pt-mobilita-nusantara-dw/
 │   └── car_data.csv                   # Dataset yang telah dikonversi ke format CSV
 │
 ├── docs/                              # Dokumentasi proyek dan arsitektur data
-│   ├── data_architecture.png         # Diagram arsitektur data
+│   ├── images_architecture.png       # Diagram arsitektur data
 │   ├── data_catalog.md               # Katalog data (deskripsi tabel dan kolom di Gold Layer)
-│   └── naming_conventions.md         # Panduan penamaan (jika tersedia)
 │
 ├── scripts/                           # Skrip SQL untuk DDL, ETL, dan transformasi data
 │   ├── 00_init_database.sql          # Skrip inisialisasi database dan skema (opsional)
