@@ -1,22 +1,22 @@
 INSERT INTO bronze.raw_car_sales_transactions (
-    Transaction_ID,
-    Date,
-    Sales_Price,
-    Car_ID,
-    Make,
-    Model,
-    Year,
-    Color,
-    Body_Style
+    transaction_id,
+    date,
+    sales_price,
+    car_id,
+    make,
+    model,
+    year,
+    color,
+    body_style
 )
 VALUES (
-    @Transaction_ID,
-    @Date,
-    @Sales_Price,
-    @Car_ID,
-    @Make,
-    @Model,
-    @Year,
-    @Color,
-    @Body_Style
+    @transaction_id,
+    @date,
+    @sales_price,
+    @car_id,
+    @make,
+    @model,
+    @year,
+    @color,
+    @body_style
 );
