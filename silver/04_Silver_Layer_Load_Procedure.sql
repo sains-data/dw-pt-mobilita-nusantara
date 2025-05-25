@@ -1,4 +1,3 @@
-
 IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'silver')
 BEGIN
     EXEC('CREATE SCHEMA silver');
@@ -24,7 +23,8 @@ BEGIN
         USING (
             SELECT DISTINCT
                 Customer_ID AS Customer_ID_Source,
-                ISNULL(NULLIF(UPPER(TRIM(Customer_Name)), ''), 'UNKNOWN') AS Customer_Name_Cleaned,
+                ISNULL(NULLIF(UPPER(TRIM(Customer_Name)), ''), 'UNKNOWN') 
+                    AS Customer_Name_Cleaned,
                 CASE 
                     WHEN LTRIM(RTRIM(UPPER(Gender))) IN ('MALE', 'M') THEN 'Male' 
                     WHEN LTRIM(RTRIM(UPPER(Gender))) IN ('FEMALE', 'F') THEN 'Female' 
@@ -69,9 +69,10 @@ BEGIN
                 Phone_Formatted, Email_Validated, Annual_Income_Cleaned
             )
             VALUES (
-                Source.Customer_ID_Source, Source.Customer_Name_Cleaned, Source.Gender_Standardized, Source.Age_Cleaned,
-                Source.Full_Address, Source.City_Cleaned, Source.State_Cleaned, Source.Zip_Code_Cleaned,
-                Source.Phone_Formatted, Source.Email_Validated, Source.Annual_Income_Cleaned
+                Source.Customer_ID_Source, Source.Customer_Name_Cleaned, Source.Gender_Standardized, 
+                Source.Age_Cleaned, Source.Full_Address, Source.City_Cleaned, Source.State_Cleaned, 
+                Source.Zip_Code_Cleaned, Source.Phone_Formatted, Source.Email_Validated, 
+                Source.Annual_Income_Cleaned
             );
         PRINT 'silver.conformed_customers populated/updated.';
 
@@ -83,7 +84,8 @@ BEGIN
                 ISNULL(NULLIF(UPPER(TRIM(Make)), ''), 'UNKNOWN') AS Make_Standardized,
                 ISNULL(NULLIF(UPPER(TRIM(Model)), ''), 'UNKNOWN') AS Model_Standardized,
                 CASE 
-                    WHEN TRY_CAST(Year AS INT) < 1900 OR TRY_CAST(Year AS INT) > (YEAR(GETDATE()) + 1) THEN NULL 
+                    WHEN TRY_CAST(Year AS INT) < 1900 OR TRY_CAST(Year AS INT) > (YEAR(GETDATE()) + 1) 
+                        THEN NULL 
                     ELSE TRY_CAST(Year AS INT) 
                 END AS Year_Production,
                 ISNULL(NULLIF(UPPER(TRIM(Color)), ''), 'UNKNOWN') AS Color_Cleaned,
@@ -115,9 +117,9 @@ BEGIN
                 Fuel_Type_Standardized, Mileage_Cleaned
             )
             VALUES (
-                Source.Car_ID_Source, Source.Make_Standardized, Source.Model_Standardized, Source.Year_Production, Source.Color_Cleaned,
-                Source.Body_Style_Standardized, Source.Engine_Type_Cleaned, Source.Transmission_Standardized,
-                Source.Fuel_Type_Standardized, Source.Mileage_Cleaned
+                Source.Car_ID_Source, Source.Make_Standardized, Source.Model_Standardized, Source.Year_Production, 
+                Source.Color_Cleaned, Source.Body_Style_Standardized, Source.Engine_Type_Cleaned, 
+                Source.Transmission_Standardized, Source.Fuel_Type_Standardized, Source.Mileage_Cleaned
             );
         PRINT 'silver.conformed_vehicles populated/updated.';
 
