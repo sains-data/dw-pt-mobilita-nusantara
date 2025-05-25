@@ -1,203 +1,76 @@
-IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'silver')
-BEGIN
-    EXEC('CREATE SCHEMA silver');
-END
+-- Pastikan Anda berada di database yang benar: pt-mobilita-nusantara
+USE [pt-mobilita-nusantara];
 GO
 
-
-IF OBJECT_ID('silver.load_silver_data', 'P') IS NOT NULL
-BEGIN
-    DROP PROCEDURE silver.load_silver_data;
-END
-GO
-
-CREATE PROCEDURE silver.load_silver_data
+-- Membuat atau Mengubah Stored Procedure untuk memuat data ke Silver Layer
+CREATE OR ALTER PROCEDURE dbo.LoadSilverLayerCarSalesTransactions
 AS
 BEGIN
     SET NOCOUNT ON;
 
-    BEGIN TRANSACTION;
+    -- Opsional: Kosongkan tabel silver sebelum memuat data baru (jika Anda ingin refresh total setiap kali)
+    -- Jika Anda ingin melakukan pembaruan inkremental, logika ini perlu lebih kompleks (misalnya dengan MERGE)
+    TRUNCATE TABLE silver.transformed_car_sales_transactions;
 
-    BEGIN TRY
-        MERGE silver.conformed_customers AS Target
-        USING (
-            SELECT DISTINCT
-                Customer_ID AS Customer_ID_Source,
-                ISNULL(NULLIF(UPPER(TRIM(Customer_Name)), ''), 'UNKNOWN') 
-                    AS Customer_Name_Cleaned,
-                CASE 
-                    WHEN LTRIM(RTRIM(UPPER(Gender))) IN ('MALE', 'M') THEN 'Male' 
-                    WHEN LTRIM(RTRIM(UPPER(Gender))) IN ('FEMALE', 'F') THEN 'Female' 
-                    ELSE 'Unknown' 
-                END AS Gender_Standardized,
-                NULL AS Age_Cleaned,
-                NULL AS Full_Address,
-                ISNULL(UPPER(TRIM(City)), 'UNKNOWN') AS City_Cleaned,
-                NULL AS State_Cleaned,
-                NULL AS Zip_Code_Cleaned,
-                NULL AS Phone_Formatted,
-                NULL AS Email_Validated,
-                
-                ISNULL(
-                    TRY_CAST(
-                        TRIM(REPLACE(REPLACE(bronze.Annual_Income, '$', ''), ',', '')) 
-                        AS DECIMAL(18, 2)                                           
-                    ), 
-                    0.00                                                            
-                ) AS Annual_Income_Cleaned
-            FROM bronze.raw_car_sales_transactions
-            WHERE Customer_ID IS NOT NULL AND Customer_ID <> '' 
-        ) AS Source
-        ON Target.Customer_ID_Source = Source.Customer_ID_Source
-        WHEN MATCHED THEN
-            UPDATE SET
-                Customer_Name_Cleaned = Source.Customer_Name_Cleaned,
-                Gender_Standardized = Source.Gender_Standardized,
-                Age_Cleaned = Source.Age_Cleaned,
-                Full_Address = Source.Full_Address,
-                City_Cleaned = Source.City_Cleaned,
-                State_Cleaned = Source.State_Cleaned,
-                Zip_Code_Cleaned = Source.Zip_Code_Cleaned,
-                Phone_Formatted = Source.Phone_Formatted,
-                Email_Validated = Source.Email_Validated,
-                Annual_Income_Cleaned = Source.Annual_Income_Cleaned
-                
-        WHEN NOT MATCHED BY TARGET THEN
-            INSERT (
-                Customer_ID_Source, Customer_Name_Cleaned, Gender_Standardized, Age_Cleaned,
-                Full_Address, City_Cleaned, State_Cleaned, Zip_Code_Cleaned,
-                Phone_Formatted, Email_Validated, Annual_Income_Cleaned
-            )
-            VALUES (
-                Source.Customer_ID_Source, Source.Customer_Name_Cleaned, Source.Gender_Standardized, 
-                Source.Age_Cleaned, Source.Full_Address, Source.City_Cleaned, Source.State_Cleaned, 
-                Source.Zip_Code_Cleaned, Source.Phone_Formatted, Source.Email_Validated, 
-                Source.Annual_Income_Cleaned
-            );
-        PRINT 'silver.conformed_customers populated/updated.';
+    -- Memasukkan data dari tabel bronze ke tabel silver dengan transformasi
+    INSERT INTO silver.transformed_car_sales_transactions (
+        Car_ID,
+        Sales_Date,
+        Customer_Name,
+        Gender,
+        Annual_Income,
+        Dealer_Name,
+        Car_Make,
+        Car_Model,
+        Engine_Type,
+        Transmission_Type,
+        Car_Color,
+        Sales_Price,
+        Dealer_Number,
+        Body_Style,
+        Customer_Phone,
+        Dealer_Region,
+        Sales_Year,
+        Sales_Month,
+        Sales_Day
+        -- Last_Updated akan diisi oleh DEFAULT GETDATE()
+    )
+    SELECT
+        b.Car_id,                               -- Dari bronze.raw_car_sales_transactions
+        b.[Date],                               -- Dari bronze.raw_car_sales_transactions
+        b.[Customer Name],                      -- Dari bronze.raw_car_sales_transactions
+        b.Gender,                               -- Dari bronze.raw_car_sales_transactions
+        TRY_CONVERT(DECIMAL(18, 2), REPLACE(REPLACE(b.[Annual Income], '$', ''), ',', '')), -- Konversi dan bersihkan Annual Income
+        b.Dealer_Name,                          -- Dari bronze.raw_car_sales_transactions
+        b.Company,                              -- Menggunakan Company dari bronze sebagai Car_Make
+        b.Model,                                -- Dari bronze.raw_car_sales_transactions
+        b.Engine,                               -- Dari bronze.raw_car_sales_transactions
+        b.Transmission,                         -- Dari bronze.raw_car_sales_transactions
+        b.Color,                                -- Dari bronze.raw_car_sales_transactions
+        TRY_CONVERT(DECIMAL(18, 2), REPLACE(REPLACE(b.[Price ($)], '$', ''), ',', '')), -- Konversi dan bersihkan Price ($)
+        b.[Dealer_No],                          -- Dari bronze.raw_car_sales_transactions
+        b.[Body Style],                         -- Dari bronze.raw_car_sales_transactions
+        b.Phone,                                -- Dari bronze.raw_car_sales_transactions
+        b.Dealer_Region,                        -- Dari bronze.raw_car_sales_transactions
+        YEAR(b.[Date]),                         -- Turunan: Tahun dari Sales_Date
+        MONTH(b.[Date]),                        -- Turunan: Bulan dari Sales_Date
+        DAY(b.[Date])                           -- Turunan: Hari dari Sales_Date
+    FROM
+        bronze.raw_car_sales_transactions AS b
+    WHERE
+        b.Car_id IS NOT NULL AND b.Car_id != ''; -- Contoh filter sederhana, data yang tidak valid tidak dimasukkan
 
+    SELECT @@ROWCOUNT AS RowsLoadedIntoSilver;
 
-        MERGE silver.conformed_vehicles AS Target
-        USING (
-            SELECT DISTINCT
-                Car_ID AS Car_ID_Source,
-                ISNULL(NULLIF(UPPER(TRIM(Make)), ''), 'UNKNOWN') AS Make_Standardized,
-                ISNULL(NULLIF(UPPER(TRIM(Model)), ''), 'UNKNOWN') AS Model_Standardized,
-                CASE 
-                    WHEN TRY_CAST(Year AS INT) < 1900 OR TRY_CAST(Year AS INT) > (YEAR(GETDATE()) + 1) 
-                        THEN NULL 
-                    ELSE TRY_CAST(Year AS INT) 
-                END AS Year_Production,
-                ISNULL(NULLIF(UPPER(TRIM(Color)), ''), 'UNKNOWN') AS Color_Cleaned,
-                ISNULL(NULLIF(UPPER(TRIM(Body_Style)), ''), 'STANDARD') AS Body_Style_Standardized,
-                ISNULL(NULLIF(UPPER(TRIM(Engine_Type)), ''), 'UNKNOWN') AS Engine_Type_Cleaned,
-                ISNULL(NULLIF(UPPER(TRIM(Transmission)), ''), 'UNKNOWN') AS Transmission_Standardized,
-                NULL AS Fuel_Type_Standardized,
-                NULL AS Mileage_Cleaned 
-            FROM bronze.raw_car_sales_transactions
-            WHERE Car_ID IS NOT NULL AND Car_ID <> ''
-        ) AS Source
-        ON Target.Car_ID_Source = Source.Car_ID_Source
-        WHEN MATCHED THEN
-            UPDATE SET
-                Make_Standardized = Source.Make_Standardized,
-                Model_Standardized = Source.Model_Standardized,
-                Year_Production = Source.Year_Production,
-                Color_Cleaned = Source.Color_Cleaned,
-                Body_Style_Standardized = Source.Body_Style_Standardized,
-                Engine_Type_Cleaned = Source.Engine_Type_Cleaned,
-                Transmission_Standardized = Source.Transmission_Standardized,
-                Fuel_Type_Standardized = Source.Fuel_Type_Standardized,
-                Mileage_Cleaned = Source.Mileage_Cleaned
-                 
-        WHEN NOT MATCHED BY TARGET THEN
-            INSERT (
-                Car_ID_Source, Make_Standardized, Model_Standardized, Year_Production, Color_Cleaned,
-                Body_Style_Standardized, Engine_Type_Cleaned, Transmission_Standardized,
-                Fuel_Type_Standardized, Mileage_Cleaned
-            )
-            VALUES (
-                Source.Car_ID_Source, Source.Make_Standardized, Source.Model_Standardized, Source.Year_Production, 
-                Source.Color_Cleaned, Source.Body_Style_Standardized, Source.Engine_Type_Cleaned, 
-                Source.Transmission_Standardized, Source.Fuel_Type_Standardized, Source.Mileage_Cleaned
-            );
-        PRINT 'silver.conformed_vehicles populated/updated.';
-
-        
-        MERGE silver.conformed_dealers AS Target
-        USING (
-            SELECT DISTINCT
-                Dealer_ID AS Dealer_ID_Source,
-                ISNULL(NULLIF(UPPER(TRIM(Dealer_Name)), ''), 'UNKNOWN') AS Dealer_Name_Cleaned,
-                NULL AS Dealer_Location_Cleaned,
-                ISNULL(NULLIF(UPPER(TRIM(Dealer_Region)), ''), 'UNKNOWN') AS Dealer_Region_Standardized 
-            FROM bronze.raw_car_sales_transactions
-            WHERE Dealer_ID IS NOT NULL AND Dealer_ID <> '' 
-        ) AS Source
-        ON Target.Dealer_ID_Source = Source.Dealer_ID_Source
-        WHEN MATCHED THEN
-            UPDATE SET
-                Dealer_Name_Cleaned = Source.Dealer_Name_Cleaned,
-                Dealer_Location_Cleaned = Source.Dealer_Location_Cleaned,
-                Dealer_Region_Standardized = Source.Dealer_Region_Standardized
-                
-        WHEN NOT MATCHED BY TARGET THEN
-            INSERT (Dealer_ID_Source, Dealer_Name_Cleaned, Dealer_Location_Cleaned, Dealer_Region_Standardized)
-            VALUES (Source.Dealer_ID_Source, Source.Dealer_Name_Cleaned, Source.Dealer_Location_Cleaned, Source.Dealer_Region_Standardized);
-        PRINT 'silver.conformed_dealers populated/updated.';
-
-        
-        TRUNCATE TABLE silver.clean_sales_transactions;
-        PRINT 'silver.clean_sales_transactions truncated.';
-
-        INSERT INTO silver.clean_sales_transactions (
-            Transaction_ID_Source,
-            Date_Source,
-            Customer_ID_Source,
-            Car_ID_Source,
-            Dealer_ID_Source,
-            Sales_Price_Cleaned,
-            Discount_Cleaned,
-            Net_Sales_Price,
-            Cost_Price_Cleaned,
-            Payment_Type_Standardized
-        )
-        SELECT
-            bronze.Transaction_ID,
-            TRY_CAST(bronze.Date AS DATE) AS Date_Source, 
-            bronze.Customer_ID,
-            bronze.Car_ID,
-            bronze.Dealer_ID,
-            ISNULL(TRY_CAST(bronze.Sales_Price AS DECIMAL(18, 2)), 0.00) AS Sales_Price_Cleaned,
-            0.00 AS Discount_Cleaned, 
-            ISNULL(TRY_CAST(bronze.Sales_Price AS DECIMAL(18, 2)), 0.00) - 0.00 AS Net_Sales_Price, 
-            0.00 AS Cost_Price_Cleaned, 
-            'UNKNOWN' AS Payment_Type_Standardized 
-        FROM bronze.raw_car_sales_transactions bronze
-        WHERE bronze.Transaction_ID IS NOT NULL AND bronze.Transaction_ID <> '' 
-            AND TRY_CAST(bronze.Date AS DATE) IS NOT NULL 
-            AND bronze.Customer_ID IS NOT NULL AND bronze.Customer_ID <> '' 
-            AND bronze.Car_ID IS NOT NULL AND bronze.Car_ID <> '' 
-            AND bronze.Dealer_ID IS NOT NULL AND bronze.Dealer_ID <> '' 
-            AND ISNULL(TRY_CAST(bronze.Sales_Price AS DECIMAL(18, 2)), 0.00) > 0; 
-        
-        PRINT 'silver.clean_sales_transactions populated.';
-
-        COMMIT TRANSACTION;
-        PRINT 'Silver layer load process completed successfully.';
-
-    END TRY
-    BEGIN CATCH
-        IF @@TRANCOUNT > 0
-            ROLLBACK TRANSACTION;
-
-        PRINT 'Error occurred during Silver layer load process.';
-        PRINT 'Error Number: ' + CAST(ERROR_NUMBER() AS VARCHAR);
-        PRINT 'Error Message: ' + ERROR_MESSAGE();
-        PRINT 'Error Line: ' + CAST(ERROR_LINE() AS VARCHAR);
-        
-        
-        THROW;
-    END CATCH
 END
 GO
+
+-- Cara Menjalankan Stored Procedure:
+-- EXEC dbo.LoadSilverLayerCarSalesTransactions;
+-- GO
+
+-- Verifikasi data setelah Stored Procedure dijalankan (jalankan secara manual setelah EXEC)
+-- SELECT TOP 100 * FROM silver.transformed_car_sales_transactions;
+-- GO
+-- SELECT COUNT(*) FROM silver.transformed_car_sales_transactions;
+-- GO
