@@ -1,38 +1,20 @@
--- Tabel mentah dari data penjualan mobil (tanpa skema)
 CREATE TABLE raw_car_sales_transactions (
-    Car_ID TEXT,
-    Transaction_Date TEXT,
-    Customer_Name TEXT,
-    Gender TEXT,
-    Annual_Income INTEGER,
-    Dealer_Name TEXT,
-    Car_Brand TEXT,
-    Car_Model TEXT,
-    Engine_Type TEXT,
-    Transmission_Type TEXT,
-    Car_Color TEXT,
-    Price_USD INTEGER,
-    Dealer_No TEXT,
-    Body_Style TEXT,
-    Phone_Number INTEGER,
-    Dealer_Region TEXT,
-    Tanggal_Ingesti_Bronze TEXT DEFAULT (datetime('now')),
-    Nama_File_Sumber TEXT
+    Car_ID NVARCHAR(255),
+    Transaction_Date NVARCHAR(50),
+    Customer_Name NVARCHAR(255),
+    Gender NVARCHAR(50),
+    Annual_Income INT,
+    Dealer_Name NVARCHAR(255),
+    Car_Brand NVARCHAR(255),
+    Car_Model NVARCHAR(255),
+    Engine_Type NVARCHAR(255),
+    Transmission_Type NVARCHAR(50),
+    Car_Color NVARCHAR(50),
+    Price_USD INT,
+    Dealer_No NVARCHAR(50),
+    Body_Style NVARCHAR(100),
+    Phone_Number BIGINT,
+    Dealer_Region NVARCHAR(100),
+    Tanggal_Ingesti_Bronze DATETIME DEFAULT GETDATE(),
+    Nama_File_Sumber NVARCHAR(255)
 );
-
--- Contoh insert data
-INSERT INTO raw_car_sales_transactions (
-    Car_ID, Transaction_Date, Customer_Name, Gender, Annual_Income, Dealer_Name,
-    Car_Brand, Car_Model, Engine_Type, Transmission_Type, Car_Color, Price_USD,
-    Dealer_No, Body_Style, Phone_Number, Dealer_Region, Nama_File_Sumber
-) VALUES (
-    'C_CND_000001', '2022-02-01', 'Geraldine', 'Male', 13500,
-    'Buddy Storbeck''s Diesel Service Inc', 'Ford', 'Expedition',
-    'Double Overhead Camshaft', 'Auto', 'Black', 26000,
-    '06457-3834', 'SUV', 8264678, 'Middletown',
-    'car_data.xlsx - Car Sales.xlsx - car_data.csv'
-);
-
--- Melihat 10 data pertama
-SELECT * FROM raw_car_sales_transactions;
-
