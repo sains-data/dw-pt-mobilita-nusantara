@@ -1,4 +1,4 @@
-# Proyek Data Warehouse dan Analitik PT Mobilita Nusantara 🚗💨
+# 🚗💨 Proyek Data Warehouse dan Analitik PT Mobilita Nusantara 🚗💨
 
 Selamat datang di repositori **Proyek Data Warehouse dan Analitik PT Mobilita Nusantara**! 🚀
 Proyek ini mendemonstrasikan solusi data warehousing dan analitik yang komprehensif untuk PT Mobilita Nusantara, sebuah perusahaan penjualan mobil bekas. Mulai dari membangun data warehouse hingga menghasilkan wawasan yang dapat ditindaklanjuti, proyek ini dirancang untuk menyoroti praktik terbaik industri dalam rekayasa dan analitik data.
