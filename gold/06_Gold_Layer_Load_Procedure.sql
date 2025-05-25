@@ -1,6 +1,6 @@
 IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE name = 'gold')
 BEGIN
-    EXEC ('CREATE SCHEMA gold'); 
+    EXEC ('CREATE SCHEMA gold');
 END
 GO
 
@@ -30,10 +30,8 @@ BEGIN
                 YEAR(sct.date_source) AS year_number,
                 DATEPART(QUARTER, sct.date_source) AS quarter_number,
                 FORMAT(sct.date_source, 'dddd', 'en-US') AS day_of_week_name
-            FROM
-                silver.clean_sales_transactions AS sct
-            WHERE
-                sct.date_source IS NOT NULL
+            FROM silver.clean_sales_transactions AS sct
+            WHERE sct.date_source IS NOT NULL
         ) AS source
         ON target.date_key = source.date_key
         WHEN NOT MATCHED BY TARGET THEN
@@ -75,21 +73,20 @@ BEGIN
                     WHEN sc.annual_income_cleaned >= 120000 THEN 'High'
                     ELSE 'Unknown'
                 END AS income_category
-            FROM
-                silver.conformed_customers AS sc 
+            FROM silver.conformed_customers AS sc
             WHERE
                 sc.customer_id_source IS NOT NULL
                 AND sc.customer_id_source NOT IN ('UNKNOWN_CUSTOMER_ID', 'NA_CUSTOMER_ID')
         ) AS source
         ON target.customer_id_source = source.customer_id_source AND target.customer_key > 0
         WHEN MATCHED AND (
-                target.customer_name <> source.customer_name_cleaned
-                OR ISNULL(target.gender, '') <> ISNULL(source.gender_standardized, '')
-                OR ISNULL(target.age_group, '') <> ISNULL(source.age_group, '')
-                OR ISNULL(target.city, '') <> ISNULL(source.city_cleaned, '')
-                OR ISNULL(target.state, '') <> ISNULL(source.state_cleaned, '')
-                OR ISNULL(target.income_category, '') <> ISNULL(source.income_category, '')
-            ) THEN
+            target.customer_name <> source.customer_name_cleaned
+            OR ISNULL(target.gender, '') <> ISNULL(source.gender_standardized, '')
+            OR ISNULL(target.age_group, '') <> ISNULL(source.age_group, '')
+            OR ISNULL(target.city, '') <> ISNULL(source.city_cleaned, '')
+            OR ISNULL(target.state, '') <> ISNULL(source.state_cleaned, '')
+            OR ISNULL(target.income_category, '') <> ISNULL(source.income_category, '')
+        ) THEN
             UPDATE SET
                 customer_name = source.customer_name_cleaned,
                 gender = source.gender_standardized,
@@ -130,24 +127,23 @@ BEGIN
                     WHEN sv.mileage_cleaned >= 75000 THEN 'High'
                     ELSE 'Unknown'
                 END AS mileage_category
-            FROM
-                silver.conformed_vehicles AS sv 
+            FROM silver.conformed_vehicles AS sv
             WHERE
                 sv.car_id_source IS NOT NULL
                 AND sv.car_id_source NOT IN ('UNKNOWN_CAR_ID', 'NA_CAR_ID')
         ) AS source
         ON target.car_id_source = source.car_id_source AND target.vehicle_key > 0
         WHEN MATCHED AND (
-                target.make <> source.make_standardized
-                OR target.model <> source.model_standardized
-                OR ISNULL(target.year_production, 0) <> ISNULL(source.year_production, 0)
-                OR ISNULL(target.color, '') <> ISNULL(source.color_cleaned, '')
-                OR ISNULL(target.body_style, '') <> ISNULL(source.body_style_standardized, '')
-                OR ISNULL(target.engine_type, '') <> ISNULL(source.engine_type_cleaned, '')
-                OR ISNULL(target.transmission, '') <> ISNULL(source.transmission_standardized, '')
-                OR ISNULL(target.fuel_type, '') <> ISNULL(source.fuel_type_standardized, '')
-                OR ISNULL(target.mileage_category, '') <> ISNULL(source.mileage_category, '')
-            ) THEN
+            target.make <> source.make_standardized
+            OR target.model <> source.model_standardized
+            OR ISNULL(target.year_production, 0) <> ISNULL(source.year_production, 0)
+            OR ISNULL(target.color, '') <> ISNULL(source.color_cleaned, '')
+            OR ISNULL(target.body_style, '') <> ISNULL(source.body_style_standardized, '')
+            OR ISNULL(target.engine_type, '') <> ISNULL(source.engine_type_cleaned, '')
+            OR ISNULL(target.transmission, '') <> ISNULL(source.transmission_standardized, '')
+            OR ISNULL(target.fuel_type, '') <> ISNULL(source.fuel_type_standardized, '')
+            OR ISNULL(target.mileage_category, '') <> ISNULL(source.mileage_category, '')
+        ) THEN
             UPDATE SET
                 make = source.make_standardized,
                 model = source.model_standardized,
@@ -173,93 +169,11 @@ BEGIN
             );
         PRINT 'gold.dim_kendaraan populated.';
 
-        PRINT 'Populating gold.dim_dealer...';
-        MERGE gold.dim_dealer AS target
-        USING (
-            SELECT
-                sd.dealer_id_source,
-                sd.dealer_name_cleaned,
-                sd.dealer_location_cleaned,
-                sd.dealer_region_standardized
-            FROM
-                silver.conformed_dealers AS sd 
-            WHERE
-                sd.dealer_id_source IS NOT NULL
-                AND sd.dealer_id_source NOT IN ('UNKNOWN_DEALER_ID', 'NA_DEALER_ID')
-        ) AS source
-        ON target.dealer_id_source = source.dealer_id_source AND target.dealer_key > 0
-        WHEN MATCHED AND (
-                target.dealer_name <> source.dealer_name_cleaned
-                OR ISNULL(target.dealer_location, '') <> ISNULL(source.dealer_location_cleaned, '')
-                OR ISNULL(target.dealer_region, '') <> ISNULL(source.dealer_region_standardized, '')
-            ) THEN
-            UPDATE SET
-                dealer_name = source.dealer_name_cleaned,
-                dealer_location = source.dealer_location_cleaned,
-                dealer_region = source.dealer_region_standardized,
-                dwh_gold_update_timestamp = GETDATE()
-        WHEN NOT MATCHED BY TARGET THEN
-            INSERT (
-                dealer_id_source, dealer_name, dealer_location, dealer_region,
-                dwh_gold_insert_timestamp, dwh_gold_update_timestamp
-            )
-            VALUES (
-                source.dealer_id_source, source.dealer_name_cleaned, source.dealer_location_cleaned,
-                source.dealer_region_standardized, GETDATE(), GETDATE()
-            );
-        PRINT 'gold.dim_dealer populated.';
-
-        PRINT 'Populating gold.fact_penjualan...';
-        TRUNCATE TABLE gold.fact_penjualan; 
-        PRINT 'gold.fact_penjualan truncated.';
-
-        INSERT INTO gold.fact_penjualan (
-            date_key, customer_key, vehicle_key, dealer_key, transaction_id_source,
-            units_sold, sales_amount_usd, cost_amount_usd, profit_amount_usd, discount_amount_usd,
-            dwh_gold_insert_timestamp
-        )
-        SELECT
-            COALESCE(dw.date_key, 0) AS date_key,
-            COALESCE(dp.customer_key, 0) AS customer_key,
-            COALESCE(dv.vehicle_key, 0) AS vehicle_key,
-            COALESCE(dd.dealer_key, 0) AS dealer_key,
-            sct.transaction_id_source,
-            1 AS units_sold, 
-            sct.net_sales_price AS sales_amount_usd,
-            sct.cost_price_cleaned AS cost_amount_usd,
-            (sct.net_sales_price - sct.cost_price_cleaned) AS profit_amount_usd,
-            sct.discount_cleaned AS discount_amount_usd,
-            GETDATE() AS dwh_gold_insert_timestamp
-        FROM
-            silver.clean_sales_transactions AS sct 
-            LEFT JOIN gold.dim_waktu AS dw 
-                ON TRY_CONVERT(INT, FORMAT(sct.date_source, 'yyyyMMdd')) = dw.date_key
-            LEFT JOIN gold.dim_pelanggan AS dp 
-                ON sct.customer_id_source = dp.customer_id_source AND dp.customer_key > 0
-            LEFT JOIN gold.dim_kendaraan AS dv 
-                ON sct.car_id_source = dv.car_id_source AND dv.vehicle_key > 0
-            LEFT JOIN gold.dim_dealer AS dd
-                ON sct.dealer_id_source = dd.dealer_id_source AND dd.dealer_key > 0;
-        PRINT 'gold.fact_penjualan populated.';
-
-        COMMIT TRANSACTION;
-        PRINT 'Gold layer load process completed successfully.';
-
+        COMMIT;
     END TRY
     BEGIN CATCH
-        IF @@TRANCOUNT > 0
-            ROLLBACK TRANSACTION;
-
-        PRINT 'Error occurred during Gold layer load process:';
-
-        PRINT 'Error Number: ' + CAST(ERROR_NUMBER() AS VARCHAR(MAX));
-        PRINT 'Error Severity: ' + CAST(ERROR_SEVERITY() AS VARCHAR(MAX));
-        PRINT 'Error State: ' + CAST(ERROR_STATE() AS VARCHAR(MAX));
-        PRINT 'Error Procedure: ' + ISNULL(ERROR_PROCEDURE(), '-');
-        PRINT 'Error Line: ' + CAST(ERROR_LINE() AS VARCHAR(MAX));
-        PRINT 'Error Message: ' + ERROR_MESSAGE();
-
-        THROW;
-    END CATCH; 
-END; 
+        ROLLBACK;
+        PRINT 'Error occurred: ' + ERROR_MESSAGE();
+    END CATCH
+END
 GO
