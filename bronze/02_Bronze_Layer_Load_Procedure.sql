@@ -45,7 +45,7 @@ SELECT
     [Phone],          -- Sesuaikan nama kolom ini JIKA berbeda di tabel '[Car Sales#xlsx - car_data$]'
     [Dealer_Region]   -- Sesuaikan nama kolom ini JIKA berbeda di tabel '[Car Sales#xlsx - car_data$]'
 FROM
-    [Car Sales#xlsx - car_data$]; -- Ini adalah tabel sumber Anda yang sudah diimpor dari Excel
+    ['Car Sales#xlsx - car_data$']; -- Ini adalah tabel sumber Anda yang sudah diimpor dari Excel
 GO
 
 -- Verifikasi jumlah data yang dimuat
