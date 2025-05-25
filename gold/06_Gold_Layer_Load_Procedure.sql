@@ -1,6 +1,6 @@
-IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'gold')
+IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE name = 'gold')
 BEGIN
-    EXEC('CREATE SCHEMA gold');
+    EXEC ('CREATE SCHEMA gold'); 
 END
 GO
 
@@ -14,185 +14,232 @@ CREATE PROCEDURE gold.load_gold_data
 AS
 BEGIN
     SET NOCOUNT ON;
+
     BEGIN TRANSACTION;
 
     BEGIN TRY
-
         PRINT 'Populating gold.dim_waktu...';
-        MERGE gold.dim_waktu AS Target
+        MERGE gold.dim_waktu AS target
         USING (
             SELECT DISTINCT
-                TRY_CONVERT(INT, FORMAT(sct.Date_Source, 'yyyyMMdd')) AS Date_Key,
-                sct.Date_Source AS Full_Date,
-                DAY(sct.Date_Source) AS Day_Number,
-                MONTH(sct.Date_Source) AS Month_Number,
-                FORMAT(sct.Date_Source, 'MMMM', 'en-US') AS Month_Name, 
-                YEAR(sct.Date_Source) AS Year_Number,
-                DATEPART(QUARTER, sct.Date_Source) AS Quarter_Number,
-                FORMAT(sct.Date_Source, 'dddd', 'en-US') AS Day_of_Week_Name 
-            FROM silver.clean_sales_transactions sct
-            WHERE sct.Date_Source IS NOT NULL
-        ) AS Source
-        ON Target.Date_Key = Source.Date_Key
+                TRY_CONVERT(INT, FORMAT(sct.date_source, 'yyyyMMdd')) AS date_key,
+                sct.date_source AS full_date,
+                DAY(sct.date_source) AS day_number,
+                MONTH(sct.date_source) AS month_number,
+                FORMAT(sct.date_source, 'MMMM', 'en-US') AS month_name,
+                YEAR(sct.date_source) AS year_number,
+                DATEPART(QUARTER, sct.date_source) AS quarter_number,
+                FORMAT(sct.date_source, 'dddd', 'en-US') AS day_of_week_name
+            FROM
+                silver.clean_sales_transactions AS sct
+            WHERE
+                sct.date_source IS NOT NULL
+        ) AS source
+        ON target.date_key = source.date_key
         WHEN NOT MATCHED BY TARGET THEN
-            INSERT (Date_Key, Full_Date, Day_Number, Month_Number, Month_Name, Year_Number, Quarter_Number, Day_of_Week_Name)
-            VALUES (Source.Date_Key, Source.Full_Date, Source.Day_Number, Source.Month_Number, Source.Month_Name, Source.Year_Number, Source.Quarter_Number, Source.Day_of_Week_Name);
+            INSERT (
+                date_key, full_date, day_number, month_number, month_name,
+                year_number, quarter_number, day_of_week_name
+            )
+            VALUES (
+                source.date_key, source.full_date, source.day_number, source.month_number, source.month_name,
+                source.year_number, source.quarter_number, source.day_of_week_name
+            );
         PRINT 'gold.dim_waktu populated.';
 
         PRINT 'Populating gold.dim_pelanggan...';
-        MERGE gold.dim_pelanggan AS Target
+        MERGE gold.dim_pelanggan AS target
         USING (
             SELECT
-                sc.Customer_ID_Source,
-                sc.Customer_Name_Cleaned,
-                sc.Gender_Standardized,
+                sc.customer_id_source,
+                sc.customer_name_cleaned,
+                sc.gender_standardized,
                 CASE
-                    WHEN sc.Age_Cleaned IS NULL THEN 'Unknown'
-                    WHEN sc.Age_Cleaned BETWEEN 18 AND 25 THEN '18-25'
-                    WHEN sc.Age_Cleaned BETWEEN 26 AND 35 THEN '26-35'
-                    WHEN sc.Age_Cleaned BETWEEN 36 AND 45 THEN '36-45'
-                    WHEN sc.Age_Cleaned BETWEEN 46 AND 55 THEN '46-55'
-                    WHEN sc.Age_Cleaned BETWEEN 56 AND 65 THEN '56-65'
-                    WHEN sc.Age_Cleaned > 65 THEN '65+'
-                    ELSE 'Unknown' 
-                END AS Age_Group,
-                sc.City_Cleaned,
-                sc.State_Cleaned, 
-                CASE
-                    WHEN sc.Annual_Income_Cleaned IS NULL THEN 'Unknown'
-                    WHEN sc.Annual_Income_Cleaned < 30000 THEN 'Low'
-                    WHEN sc.Annual_Income_Cleaned BETWEEN 30000 AND 59999 THEN 'Medium-Low'
-                    WHEN sc.Annual_Income_Cleaned BETWEEN 60000 AND 89999 THEN 'Medium'
-                    WHEN sc.Annual_Income_Cleaned BETWEEN 90000 AND 119999 THEN 'Medium-High'
-                    WHEN sc.Annual_Income_Cleaned >= 120000 THEN 'High'
+                    WHEN sc.age_cleaned IS NULL THEN 'Unknown'
+                    WHEN sc.age_cleaned BETWEEN 18 AND 25 THEN '18-25'
+                    WHEN sc.age_cleaned BETWEEN 26 AND 35 THEN '26-35'
+                    WHEN sc.age_cleaned BETWEEN 36 AND 45 THEN '36-45'
+                    WHEN sc.age_cleaned BETWEEN 46 AND 55 THEN '46-55'
+                    WHEN sc.age_cleaned BETWEEN 56 AND 65 THEN '56-65'
+                    WHEN sc.age_cleaned > 65 THEN '65+'
                     ELSE 'Unknown'
-                END AS Income_Category
-            FROM silver.conformed_customers sc
-            WHERE sc.Customer_ID_Source IS NOT NULL AND sc.Customer_ID_Source NOT IN ('UNKNOWN_CUSTOMER_ID', 'NA_CUSTOMER_ID') -- Exclude defaults if they exist in silver
-        ) AS Source
-        ON Target.Customer_ID_Source = Source.Customer_ID_Source AND Target.Customer_Key > 0 
+                END AS age_group,
+                sc.city_cleaned,
+                sc.state_cleaned,
+                CASE
+                    WHEN sc.annual_income_cleaned IS NULL THEN 'Unknown'
+                    WHEN sc.annual_income_cleaned < 30000 THEN 'Low'
+                    WHEN sc.annual_income_cleaned BETWEEN 30000 AND 59999 THEN 'Medium-Low'
+                    WHEN sc.annual_income_cleaned BETWEEN 60000 AND 89999 THEN 'Medium'
+                    WHEN sc.annual_income_cleaned BETWEEN 90000 AND 119999 THEN 'Medium-High'
+                    WHEN sc.annual_income_cleaned >= 120000 THEN 'High'
+                    ELSE 'Unknown'
+                END AS income_category
+            FROM
+                silver.conformed_customers AS sc 
+            WHERE
+                sc.customer_id_source IS NOT NULL
+                AND sc.customer_id_source NOT IN ('UNKNOWN_CUSTOMER_ID', 'NA_CUSTOMER_ID')
+        ) AS source
+        ON target.customer_id_source = source.customer_id_source AND target.customer_key > 0
         WHEN MATCHED AND (
-            Target.Customer_Name <> Source.Customer_Name_Cleaned OR
-            ISNULL(Target.Gender, '') <> ISNULL(Source.Gender_Standardized, '') OR
-            ISNULL(Target.Age_Group, '') <> ISNULL(Source.Age_Group, '') OR
-            ISNULL(Target.City, '') <> ISNULL(Source.City_Cleaned, '') OR
-            ISNULL(Target.State, '') <> ISNULL(Source.State_Cleaned, '') OR
-            ISNULL(Target.Income_Category, '') <> ISNULL(Source.Income_Category, '')
-        ) THEN
+                target.customer_name <> source.customer_name_cleaned
+                OR ISNULL(target.gender, '') <> ISNULL(source.gender_standardized, '')
+                OR ISNULL(target.age_group, '') <> ISNULL(source.age_group, '')
+                OR ISNULL(target.city, '') <> ISNULL(source.city_cleaned, '')
+                OR ISNULL(target.state, '') <> ISNULL(source.state_cleaned, '')
+                OR ISNULL(target.income_category, '') <> ISNULL(source.income_category, '')
+            ) THEN
             UPDATE SET
-                Customer_Name = Source.Customer_Name_Cleaned,
-                Gender = Source.Gender_Standardized,
-                Age_Group = Source.Age_Group,
-                City = Source.City_Cleaned,
-                State = Source.State_Cleaned,
-                Income_Category = Source.Income_Category,
-                DWH_Gold_Update_Timestamp = GETDATE()
+                customer_name = source.customer_name_cleaned,
+                gender = source.gender_standardized,
+                age_group = source.age_group,
+                city = source.city_cleaned,
+                state = source.state_cleaned,
+                income_category = source.income_category,
+                dwh_gold_update_timestamp = GETDATE()
         WHEN NOT MATCHED BY TARGET THEN
-            INSERT (Customer_ID_Source, Customer_Name, Gender, Age_Group, City, State, Income_Category, DWH_Gold_Insert_Timestamp, DWH_Gold_Update_Timestamp)
-            VALUES (Source.Customer_ID_Source, Source.Customer_Name_Cleaned, Source.Gender_Standardized, Source.Age_Group, Source.City_Cleaned, Source.State_Cleaned, Source.Income_Category, GETDATE(), GETDATE());
+            INSERT (
+                customer_id_source, customer_name, gender, age_group, city, state,
+                income_category, dwh_gold_insert_timestamp, dwh_gold_update_timestamp
+            )
+            VALUES (
+                source.customer_id_source, source.customer_name_cleaned, source.gender_standardized,
+                source.age_group, source.city_cleaned, source.state_cleaned, source.income_category,
+                GETDATE(), GETDATE()
+            );
         PRINT 'gold.dim_pelanggan populated.';
+
         PRINT 'Populating gold.dim_kendaraan...';
-        MERGE gold.dim_kendaraan AS Target
+        MERGE gold.dim_kendaraan AS target
         USING (
             SELECT
-                sv.Car_ID_Source,
-                sv.Make_Standardized,
-                sv.Model_Standardized,
-                sv.Year_Production,
-                sv.Color_Cleaned,
-                sv.Body_Style_Standardized,
-                sv.Engine_Type_Cleaned,
-                sv.Transmission_Standardized,
-                sv.Fuel_Type_Standardized, 
+                sv.car_id_source,
+                sv.make_standardized,
+                sv.model_standardized,
+                sv.year_production,
+                sv.color_cleaned,
+                sv.body_style_standardized,
+                sv.engine_type_cleaned,
+                sv.transmission_standardized,
+                sv.fuel_type_standardized,
                 CASE
-                    WHEN sv.Mileage_Cleaned IS NULL THEN 'Unknown'
-                    WHEN sv.Mileage_Cleaned < 25000 THEN 'Low'
-                    WHEN sv.Mileage_Cleaned BETWEEN 25000 AND 74999 THEN 'Medium'
-                    WHEN sv.Mileage_Cleaned >= 75000 THEN 'High'
+                    WHEN sv.mileage_cleaned IS NULL THEN 'Unknown'
+                    WHEN sv.mileage_cleaned < 25000 THEN 'Low'
+                    WHEN sv.mileage_cleaned BETWEEN 25000 AND 74999 THEN 'Medium'
+                    WHEN sv.mileage_cleaned >= 75000 THEN 'High'
                     ELSE 'Unknown'
-                END AS Mileage_Category
-            FROM silver.conformed_vehicles sv
-            WHERE sv.Car_ID_Source IS NOT NULL AND sv.Car_ID_Source NOT IN ('UNKNOWN_CAR_ID', 'NA_CAR_ID')
-        ) AS Source
-        ON Target.Car_ID_Source = Source.Car_ID_Source AND Target.Vehicle_Key > 0 
+                END AS mileage_category
+            FROM
+                silver.conformed_vehicles AS sv 
+            WHERE
+                sv.car_id_source IS NOT NULL
+                AND sv.car_id_source NOT IN ('UNKNOWN_CAR_ID', 'NA_CAR_ID')
+        ) AS source
+        ON target.car_id_source = source.car_id_source AND target.vehicle_key > 0
         WHEN MATCHED AND (
-            Target.Make <> Source.Make_Standardized OR
-            Target.Model <> Source.Model_Standardized OR
-            ISNULL(Target.Year_Production, 0) <> ISNULL(Source.Year_Production, 0) OR
-            ISNULL(Target.Color, '') <> ISNULL(Source.Color_Cleaned, '') OR
-            ISNULL(Target.Body_Style, '') <> ISNULL(Source.Body_Style_Standardized, '') OR
-            ISNULL(Target.Engine_Type, '') <> ISNULL(Source.Engine_Type_Cleaned, '') OR
-            ISNULL(Target.Transmission, '') <> ISNULL(Source.Transmission_Standardized, '') OR
-            ISNULL(Target.Fuel_Type, '') <> ISNULL(Source.Fuel_Type_Standardized, '') OR
-            ISNULL(Target.Mileage_Category, '') <> ISNULL(Source.Mileage_Category, '')
-        ) THEN
+                target.make <> source.make_standardized
+                OR target.model <> source.model_standardized
+                OR ISNULL(target.year_production, 0) <> ISNULL(source.year_production, 0)
+                OR ISNULL(target.color, '') <> ISNULL(source.color_cleaned, '')
+                OR ISNULL(target.body_style, '') <> ISNULL(source.body_style_standardized, '')
+                OR ISNULL(target.engine_type, '') <> ISNULL(source.engine_type_cleaned, '')
+                OR ISNULL(target.transmission, '') <> ISNULL(source.transmission_standardized, '')
+                OR ISNULL(target.fuel_type, '') <> ISNULL(source.fuel_type_standardized, '')
+                OR ISNULL(target.mileage_category, '') <> ISNULL(source.mileage_category, '')
+            ) THEN
             UPDATE SET
-                Make = Source.Make_Standardized,
-                Model = Source.Model_Standardized,
-                Year_Production = Source.Year_Production,
-                Color = Source.Color_Cleaned,
-                Body_Style = Source.Body_Style_Standardized,
-                Engine_Type = Source.Engine_Type_Cleaned,
-                Transmission = Source.Transmission_Standardized,
-                Fuel_Type = Source.Fuel_Type_Standardized,
-                Mileage_Category = Source.Mileage_Category,
-                DWH_Gold_Update_Timestamp = GETDATE()
+                make = source.make_standardized,
+                model = source.model_standardized,
+                year_production = source.year_production,
+                color = source.color_cleaned,
+                body_style = source.body_style_standardized,
+                engine_type = source.engine_type_cleaned,
+                transmission = source.transmission_standardized,
+                fuel_type = source.fuel_type_standardized,
+                mileage_category = source.mileage_category,
+                dwh_gold_update_timestamp = GETDATE()
         WHEN NOT MATCHED BY TARGET THEN
-            INSERT (Car_ID_Source, Make, Model, Year_Production, Color, Body_Style, Engine_Type, Transmission, Fuel_Type, Mileage_Category, DWH_Gold_Insert_Timestamp, DWH_Gold_Update_Timestamp)
-            VALUES (Source.Car_ID_Source, Source.Make_Standardized, Source.Model_Standardized, Source.Year_Production, Source.Color_Cleaned, Source.Body_Style_Standardized, Source.Engine_Type_Cleaned, Source.Transmission_Standardized, Source.Fuel_Type_Standardized, Source.Mileage_Category, GETDATE(), GETDATE());
+            INSERT (
+                car_id_source, make, model, year_production, color, body_style,
+                engine_type, transmission, fuel_type, mileage_category,
+                dwh_gold_insert_timestamp, dwh_gold_update_timestamp
+            )
+            VALUES (
+                source.car_id_source, source.make_standardized, source.model_standardized,
+                source.year_production, source.color_cleaned, source.body_style_standardized,
+                source.engine_type_cleaned, source.transmission_standardized, source.fuel_type_standardized,
+                source.mileage_category, GETDATE(), GETDATE()
+            );
         PRINT 'gold.dim_kendaraan populated.';
+
         PRINT 'Populating gold.dim_dealer...';
-        MERGE gold.dim_dealer AS Target
+        MERGE gold.dim_dealer AS target
         USING (
             SELECT
-                sd.Dealer_ID_Source,
-                sd.Dealer_Name_Cleaned,
-                sd.Dealer_Location_Cleaned, 
-                sd.Dealer_Region_Standardized
-            FROM silver.conformed_dealers sd
-            WHERE sd.Dealer_ID_Source IS NOT NULL AND sd.Dealer_ID_Source NOT IN ('UNKNOWN_DEALER_ID', 'NA_DEALER_ID')
-        ) AS Source
-        ON Target.Dealer_ID_Source = Source.Dealer_ID_Source AND Target.Dealer_Key > 0 
+                sd.dealer_id_source,
+                sd.dealer_name_cleaned,
+                sd.dealer_location_cleaned,
+                sd.dealer_region_standardized
+            FROM
+                silver.conformed_dealers AS sd 
+            WHERE
+                sd.dealer_id_source IS NOT NULL
+                AND sd.dealer_id_source NOT IN ('UNKNOWN_DEALER_ID', 'NA_DEALER_ID')
+        ) AS source
+        ON target.dealer_id_source = source.dealer_id_source AND target.dealer_key > 0
         WHEN MATCHED AND (
-            Target.Dealer_Name <> Source.Dealer_Name_Cleaned OR
-            ISNULL(Target.Dealer_Location, '') <> ISNULL(Source.Dealer_Location_Cleaned, '') OR
-            ISNULL(Target.Dealer_Region, '') <> ISNULL(Source.Dealer_Region_Standardized, '')
-        ) THEN
+                target.dealer_name <> source.dealer_name_cleaned
+                OR ISNULL(target.dealer_location, '') <> ISNULL(source.dealer_location_cleaned, '')
+                OR ISNULL(target.dealer_region, '') <> ISNULL(source.dealer_region_standardized, '')
+            ) THEN
             UPDATE SET
-                Dealer_Name = Source.Dealer_Name_Cleaned,
-                Dealer_Location = Source.Dealer_Location_Cleaned,
-                Dealer_Region = Source.Dealer_Region_Standardized,
-                DWH_Gold_Update_Timestamp = GETDATE()
+                dealer_name = source.dealer_name_cleaned,
+                dealer_location = source.dealer_location_cleaned,
+                dealer_region = source.dealer_region_standardized,
+                dwh_gold_update_timestamp = GETDATE()
         WHEN NOT MATCHED BY TARGET THEN
-            INSERT (Dealer_ID_Source, Dealer_Name, Dealer_Location, Dealer_Region, DWH_Gold_Insert_Timestamp, DWH_Gold_Update_Timestamp)
-            VALUES (Source.Dealer_ID_Source, Source.Dealer_Name_Cleaned, Source.Dealer_Location_Cleaned, Source.Dealer_Region_Standardized, GETDATE(), GETDATE());
+            INSERT (
+                dealer_id_source, dealer_name, dealer_location, dealer_region,
+                dwh_gold_insert_timestamp, dwh_gold_update_timestamp
+            )
+            VALUES (
+                source.dealer_id_source, source.dealer_name_cleaned, source.dealer_location_cleaned,
+                source.dealer_region_standardized, GETDATE(), GETDATE()
+            );
         PRINT 'gold.dim_dealer populated.';
+
         PRINT 'Populating gold.fact_penjualan...';
-        TRUNCATE TABLE gold.fact_penjualan;
+        TRUNCATE TABLE gold.fact_penjualan; 
         PRINT 'gold.fact_penjualan truncated.';
 
         INSERT INTO gold.fact_penjualan (
-            Date_Key, Customer_Key, Vehicle_Key, Dealer_Key, Transaction_ID_Source,
-            Units_Sold, Sales_Amount_USD, Cost_Amount_USD, Profit_Amount_USD, Discount_Amount_USD,
-            DWH_Gold_Insert_Timestamp
+            date_key, customer_key, vehicle_key, dealer_key, transaction_id_source,
+            units_sold, sales_amount_usd, cost_amount_usd, profit_amount_usd, discount_amount_usd,
+            dwh_gold_insert_timestamp
         )
         SELECT
-            COALESCE(dw.Date_Key, 0) AS Date_Key, 
-            COALESCE(dp.Customer_Key, 0) AS Customer_Key, 
-            COALESCE(dv.Vehicle_Key, 0) AS Vehicle_Key, 
-            COALESCE(dd.Dealer_Key, 0) AS Dealer_Key, 
-            sct.Transaction_ID_Source,
-            1 AS Units_Sold, 
-            sct.Net_Sales_Price AS Sales_Amount_USD,
-            sct.Cost_Price_Cleaned AS Cost_Amount_USD,
-            (sct.Net_Sales_Price - sct.Cost_Price_Cleaned) AS Profit_Amount_USD,
-            sct.Discount_Cleaned AS Discount_Amount_USD,
-            GETDATE() AS DWH_Gold_Insert_Timestamp
-        FROM silver.clean_sales_transactions sct
-        LEFT JOIN gold.dim_waktu dw ON TRY_CONVERT(INT, FORMAT(sct.Date_Source, 'yyyyMMdd')) = dw.Date_Key
-        LEFT JOIN gold.dim_pelanggan dp ON sct.Customer_ID_Source = dp.Customer_ID_Source AND dp.Customer_Key > 0
-        LEFT JOIN gold.dim_kendaraan dv ON sct.Car_ID_Source = dv.Car_ID_Source AND dv.Vehicle_Key > 0
-        LEFT JOIN gold.dim_dealer dd ON sct.Dealer_ID_Source = dd.Dealer_ID_Source AND dd.Dealer_Key > 0;
+            COALESCE(dw.date_key, 0) AS date_key,
+            COALESCE(dp.customer_key, 0) AS customer_key,
+            COALESCE(dv.vehicle_key, 0) AS vehicle_key,
+            COALESCE(dd.dealer_key, 0) AS dealer_key,
+            sct.transaction_id_source,
+            1 AS units_sold, 
+            sct.net_sales_price AS sales_amount_usd,
+            sct.cost_price_cleaned AS cost_amount_usd,
+            (sct.net_sales_price - sct.cost_price_cleaned) AS profit_amount_usd,
+            sct.discount_cleaned AS discount_amount_usd,
+            GETDATE() AS dwh_gold_insert_timestamp
+        FROM
+            silver.clean_sales_transactions AS sct 
+            LEFT JOIN gold.dim_waktu AS dw 
+                ON TRY_CONVERT(INT, FORMAT(sct.date_source, 'yyyyMMdd')) = dw.date_key
+            LEFT JOIN gold.dim_pelanggan AS dp 
+                ON sct.customer_id_source = dp.customer_id_source AND dp.customer_key > 0
+            LEFT JOIN gold.dim_kendaraan AS dv 
+                ON sct.car_id_source = dv.car_id_source AND dv.vehicle_key > 0
+            LEFT JOIN gold.dim_dealer AS dd
+                ON sct.dealer_id_source = dd.dealer_id_source AND dd.dealer_key > 0;
         PRINT 'gold.fact_penjualan populated.';
 
         COMMIT TRANSACTION;
@@ -204,14 +251,15 @@ BEGIN
             ROLLBACK TRANSACTION;
 
         PRINT 'Error occurred during Gold layer load process:';
-        PRINT 'Error Number: ' + CAST(ERROR_NUMBER() AS VARCHAR);
-        PRINT 'Error Severity: ' + CAST(ERROR_SEVERITY() AS VARCHAR);
-        PRINT 'Error State: ' + CAST(ERROR_STATE() AS VARCHAR);
+
+        PRINT 'Error Number: ' + CAST(ERROR_NUMBER() AS VARCHAR(MAX));
+        PRINT 'Error Severity: ' + CAST(ERROR_SEVERITY() AS VARCHAR(MAX));
+        PRINT 'Error State: ' + CAST(ERROR_STATE() AS VARCHAR(MAX));
         PRINT 'Error Procedure: ' + ISNULL(ERROR_PROCEDURE(), '-');
-        PRINT 'Error Line: ' + CAST(ERROR_LINE() AS VARCHAR);
+        PRINT 'Error Line: ' + CAST(ERROR_LINE() AS VARCHAR(MAX));
         PRINT 'Error Message: ' + ERROR_MESSAGE();
-        
-        THROW; 
-    END CATCH
-END
+
+        THROW;
+    END CATCH; 
+END; 
 GO
