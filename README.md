@@ -76,38 +76,39 @@ Wawasan ini memberdayakan pemangku kepentingan PT Mobilita Nusantara dengan metr
 ---
 ## 📂 Struktur Repositori
 
-
+```
 pt-mobilita-nusantara-dw/
+├── datasets/                          # Dataset mentah yang digunakan dalam proyek
+│   ├── Car Sales.xlsx                 # Sumber data awal
+│   └── car_data.csv                   # Dataset yang telah dikonversi ke format CSV
 │
-├── datasets/                           # Dataset mentah yang digunakan untuk proyek (Car Sales.xlsx - car_data.csv)
+├── docs/                              # Dokumentasi proyek dan arsitektur data
+│   ├── data_architecture.png         # Diagram arsitektur data
+│   ├── data_catalog.md               # Katalog data (deskripsi tabel dan kolom di Gold Layer)
+│   └── naming_conventions.md         # Panduan penamaan (jika tersedia)
 │
-├── docs/                               # Dokumentasi proyek dan detail arsitektur
-│   ├── data_architecture.png           # Diagram arsitektur data (gambar yang telah dibuat)
-│   ├── data_catalog.md                 # Katalog data untuk Gold Layer (deskripsi tabel & kolom)
-│   ├── naming_conventions.md           # Panduan penamaan konsisten (jika dibuat)
-│
-├── scripts/                            # Skrip SQL untuk DDL, ETL, dan transformasi
-│   ├── 00_init_database.sql            # Skrip untuk membuat database dan skema (opsional)
-│   ├── bronze/
+├── scripts/                           # Skrip SQL untuk DDL, ETL, dan transformasi data
+│   ├── 00_init_database.sql          # Skrip inisialisasi database dan skema (opsional)
+│   ├── bronze/                       # Layer Bronze
 │   │   ├── 01_Bronze_Layer_DDL.sql
 │   │   └── 02_Bronze_Layer_Load_Procedure.sql
-│   ├── silver/
+│   ├── silver/                       # Layer Silver
 │   │   ├── 03_Silver_Layer_DDL.sql
 │   │   └── 04_Silver_Layer_Load_Procedure.sql
-│   ├── gold/
-│   │   ├── 05_Gold_Layer_DDL.sql
-│   │   └── 06_Gold_Layer_Load_Procedure.sql
+│   └── gold/                         # Layer Gold
+│       ├── 05_Gold_Layer_DDL.sql
+│       └── 06_Gold_Layer_Load_Procedure.sql
 │
-├── tests/                              # Skrip pengujian kualitas data
+├── tests/                             # Skrip untuk pengujian kualitas data
 │   ├── 07_Quality_Checks_Silver.sql
 │   └── 08_Quality_Checks_Gold.sql
 │
-├── README.md                           # Gambaran umum proyek dan instruksi
-├── LICENSE                             # Informasi lisensi untuk repositori (misalnya, MIT)
-└── .gitignore                          # File dan direktori yang akan diabaikan oleh Git
+├── README.md                          # Dokumentasi utama proyek
+├── LICENSE                            # Lisensi proyek (misalnya: MIT)
+└── .gitignore                         # Daftar file dan direktori yang diabaikan oleh Git
+```
 
 ---
-
 ## 🛡️ Lisensi
 
 Proyek ini dilisensikan di bawah [MIT License](LICENSE). Anda bebas menggunakan, memodifikasi, dan membagikan proyek ini dengan atribusi yang sesuai.
