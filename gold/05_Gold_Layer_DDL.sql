@@ -9,7 +9,7 @@ BEGIN
 END
 GO
 
--- Hapus tabel jika sudah ada (urutkan berdasarkan foreign key dependencies jika perlu)
+-- Hapus tabel jika sudah ada (urutkan berdasarkan foreign key dependencies)
 IF OBJECT_ID('gold.fact_car_sales', 'U') IS NOT NULL
     DROP TABLE gold.fact_car_sales;
 IF OBJECT_ID('gold.dim_date', 'U') IS NOT NULL
@@ -30,10 +30,11 @@ CREATE TABLE gold.dim_date (
     month INT NOT NULL,
     day INT NOT NULL,
     weekday VARCHAR(20) NOT NULL,
-    month_name VARCHAR(20) NOT NULL, -- KOLOM INI DIPERLUKAN
-    quarter INT NOT NULL             -- KOLOM INI DIPERLUKAN
+    month_name VARCHAR(20) NOT NULL, -- Kolom ini penting
+    quarter INT NOT NULL             -- Kolom ini penting
 );
 GO
+PRINT 'Tabel gold.dim_date berhasil dibuat/diperbarui.';
 
 -- Create dimension table for Car
 CREATE TABLE gold.dim_car (
@@ -41,21 +42,23 @@ CREATE TABLE gold.dim_car (
     car_id VARCHAR(255) NOT NULL UNIQUE,
     make VARCHAR(255),
     model VARCHAR(255),
-    engine_type VARCHAR(255),       -- KOLOM INI DIPERLUKAN
-    transmission_type VARCHAR(255), -- KOLOM INI DIPERLUKAN
+    engine_type VARCHAR(255),       -- Kolom ini penting
+    transmission_type VARCHAR(255), -- Kolom ini penting
     color VARCHAR(255),
     body_style VARCHAR(255)
 );
 GO
+PRINT 'Tabel gold.dim_car berhasil dibuat/diperbarui.';
 
 -- Create dimension table for Dealer
 CREATE TABLE gold.dim_dealer (
     dealer_key INT PRIMARY KEY IDENTITY(1,1),
-    dealer_number VARCHAR(255) UNIQUE,
+    dealer_number VARCHAR(255) UNIQUE, -- Tetap UNIQUE karena ini ID Bisnis Dealer
     dealer_name VARCHAR(255),
     dealer_region VARCHAR(255)
 );
 GO
+PRINT 'Tabel gold.dim_dealer berhasil dibuat/diperbarui.';
 
 -- Create dimension table for Customer
 CREATE TABLE gold.dim_customer (
@@ -66,6 +69,7 @@ CREATE TABLE gold.dim_customer (
     customer_phone VARCHAR(50)
 );
 GO
+PRINT 'Tabel gold.dim_customer berhasil dibuat/diperbarui.';
 
 -- Create fact table for Car Sales
 CREATE TABLE gold.fact_car_sales (
@@ -82,5 +86,5 @@ CREATE TABLE gold.fact_car_sales (
     FOREIGN KEY (customer_key) REFERENCES gold.dim_customer(customer_key)
 );
 GO
-
-SELECT 'Skema Gold dan tabel-tabel dimensi serta fakta berhasil dibuat DENGAN KOLOM YANG BENAR.' AS Status;
+PRINT 'Tabel gold.fact_car_sales berhasil dibuat/diperbarui.';
+PRINT 'Skema Gold dan tabel-tabel dimensi serta fakta berhasil dibuat/diperbarui.';
