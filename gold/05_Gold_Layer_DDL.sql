@@ -1,4 +1,5 @@
-IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'gold')
+-- Cek dan buat schema 'gold' jika belum ada
+IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE name = 'gold')
 BEGIN
     EXEC('CREATE SCHEMA gold');
     PRINT 'Schema gold created.';
@@ -9,6 +10,7 @@ BEGIN
 END
 GO
 
+-- Tabel dim_waktu
 IF OBJECT_ID('gold.dim_waktu', 'U') IS NULL
 BEGIN
     CREATE TABLE gold.dim_waktu (
@@ -25,14 +27,28 @@ BEGIN
 
     IF NOT EXISTS (SELECT 1 FROM gold.dim_waktu WHERE Date_Key = 0)
     BEGIN
-        INSERT INTO gold.dim_waktu (Date_Key, Full_Date, Day_Number, Month_Number, Month_Name, Year_Number, Quarter_Number, Day_of_Week_Name)
-        VALUES (0, '1900-01-01', 0, 0, 'Unknown', 0, 0, 'Unknown');
+        INSERT INTO gold.dim_waktu (
+            Date_Key, Full_Date, Day_Number, Month_Number, Month_Name,
+            Year_Number, Quarter_Number, Day_of_Week_Name
+        )
+        VALUES (
+            0, '1900-01-01', 0, 0, 'Unknown',
+            0, 0, 'Unknown'
+        );
     END
+
     IF NOT EXISTS (SELECT 1 FROM gold.dim_waktu WHERE Date_Key = -1)
     BEGIN
-        INSERT INTO gold.dim_waktu (Date_Key, Full_Date, Day_Number, Month_Number, Month_Name, Year_Number, Quarter_Number, Day_of_Week_Name)
-        VALUES (-1, '1899-01-01', 0, 0, 'Not Applicable', 0, 0, 'Not Applicable');
+        INSERT INTO gold.dim_waktu (
+            Date_Key, Full_Date, Day_Number, Month_Number, Month_Name,
+            Year_Number, Quarter_Number, Day_of_Week_Name
+        )
+        VALUES (
+            -1, '1899-01-01', 0, 0, 'Not Applicable',
+            0, 0, 'Not Applicable'
+        );
     END
+
     PRINT 'Default records for gold.dim_waktu ensured.';
 END
 ELSE
@@ -41,6 +57,7 @@ BEGIN
 END
 GO
 
+-- Tabel dim_pelanggan
 IF OBJECT_ID('gold.dim_pelanggan', 'U') IS NULL
 BEGIN
     CREATE TABLE gold.dim_pelanggan (
@@ -58,16 +75,31 @@ BEGIN
     PRINT 'Table gold.dim_pelanggan created.';
 
     SET IDENTITY_INSERT gold.dim_pelanggan ON;
+
     IF NOT EXISTS (SELECT 1 FROM gold.dim_pelanggan WHERE Customer_Key = 0)
     BEGIN
-        INSERT INTO gold.dim_pelanggan (Customer_Key, Customer_ID_Source, Customer_Name, Gender, Age_Group, City, State, Income_Category, DWH_Gold_Insert_Timestamp, DWH_Gold_Update_Timestamp)
-        VALUES (0, 'UNKNOWN_CUSTOMER_ID', 'Unknown Customer', 'N/A', 'Unknown', 'Unknown', 'Unknown', 'Unknown', GETDATE(), GETDATE());
+        INSERT INTO gold.dim_pelanggan (
+            Customer_Key, Customer_ID_Source, Customer_Name, Gender, Age_Group,
+            City, State, Income_Category, DWH_Gold_Insert_Timestamp, DWH_Gold_Update_Timestamp
+        )
+        VALUES (
+            0, 'UNKNOWN_CUSTOMER_ID', 'Unknown Customer', 'N/A', 'Unknown',
+            'Unknown', 'Unknown', 'Unknown', GETDATE(), GETDATE()
+        );
     END
+
     IF NOT EXISTS (SELECT 1 FROM gold.dim_pelanggan WHERE Customer_Key = -1)
     BEGIN
-        INSERT INTO gold.dim_pelanggan (Customer_Key, Customer_ID_Source, Customer_Name, Gender, Age_Group, City, State, Income_Category, DWH_Gold_Insert_Timestamp, DWH_Gold_Update_Timestamp)
-        VALUES (-1, 'NA_CUSTOMER_ID', 'Not Applicable Customer', 'N/A', 'N/A', 'N/A', 'N/A', 'N/A', GETDATE(), GETDATE());
+        INSERT INTO gold.dim_pelanggan (
+            Customer_Key, Customer_ID_Source, Customer_Name, Gender, Age_Group,
+            City, State, Income_Category, DWH_Gold_Insert_Timestamp, DWH_Gold_Update_Timestamp
+        )
+        VALUES (
+            -1, 'NA_CUSTOMER_ID', 'Not Applicable Customer', 'N/A', 'N/A',
+            'N/A', 'N/A', 'N/A', GETDATE(), GETDATE()
+        );
     END
+
     SET IDENTITY_INSERT gold.dim_pelanggan OFF;
     PRINT 'Default records for gold.dim_pelanggan inserted.';
 END
@@ -77,6 +109,7 @@ BEGIN
 END
 GO
 
+-- Tabel dim_kendaraan
 IF OBJECT_ID('gold.dim_kendaraan', 'U') IS NULL
 BEGIN
     CREATE TABLE gold.dim_kendaraan (
@@ -97,16 +130,35 @@ BEGIN
     PRINT 'Table gold.dim_kendaraan created.';
 
     SET IDENTITY_INSERT gold.dim_kendaraan ON;
+
     IF NOT EXISTS (SELECT 1 FROM gold.dim_kendaraan WHERE Vehicle_Key = 0)
     BEGIN
-        INSERT INTO gold.dim_kendaraan (Vehicle_Key, Car_ID_Source, Make, Model, Year_Production, Color, Body_Style, Engine_Type, Transmission, Fuel_Type, Mileage_Category, DWH_Gold_Insert_Timestamp, DWH_Gold_Update_Timestamp)
-        VALUES (0, 'UNKNOWN_CAR_ID', 'Unknown Make', 'Unknown Model', 0, 'Unknown', 'Unknown', 'Unknown', 'Unknown', 'Unknown', 'Unknown', GETDATE(), GETDATE());
+        INSERT INTO gold.dim_kendaraan (
+            Vehicle_Key, Car_ID_Source, Make, Model, Year_Production, Color,
+            Body_Style, Engine_Type, Transmission, Fuel_Type, Mileage_Category,
+            DWH_Gold_Insert_Timestamp, DWH_Gold_Update_Timestamp
+        )
+        VALUES (
+            0, 'UNKNOWN_CAR_ID', 'Unknown Make', 'Unknown Model', 0, 'Unknown',
+            'Unknown', 'Unknown', 'Unknown', 'Unknown', 'Unknown',
+            GETDATE(), GETDATE()
+        );
     END
+
     IF NOT EXISTS (SELECT 1 FROM gold.dim_kendaraan WHERE Vehicle_Key = -1)
     BEGIN
-        INSERT INTO gold.dim_kendaraan (Vehicle_Key, Car_ID_Source, Make, Model, Year_Production, Color, Body_Style, Engine_Type, Transmission, Fuel_Type, Mileage_Category, DWH_Gold_Insert_Timestamp, DWH_Gold_Update_Timestamp)
-        VALUES (-1, 'NA_CAR_ID', 'Not Applicable Make', 'Not Applicable Model', 0, 'N/A', 'N/A', 'N/A', 'N/A', 'N/A', 'N/A', GETDATE(), GETDATE());
+        INSERT INTO gold.dim_kendaraan (
+            Vehicle_Key, Car_ID_Source, Make, Model, Year_Production, Color,
+            Body_Style, Engine_Type, Transmission, Fuel_Type, Mileage_Category,
+            DWH_Gold_Insert_Timestamp, DWH_Gold_Update_Timestamp
+        )
+        VALUES (
+            -1, 'NA_CAR_ID', 'Not Applicable Make', 'Not Applicable Model', 0, 'N/A',
+            'N/A', 'N/A', 'N/A', 'N/A', 'N/A',
+            GETDATE(), GETDATE()
+        );
     END
+
     SET IDENTITY_INSERT gold.dim_kendaraan OFF;
     PRINT 'Default records for gold.dim_kendaraan inserted.';
 END
@@ -116,6 +168,7 @@ BEGIN
 END
 GO
 
+-- Tabel dim_dealer
 IF OBJECT_ID('gold.dim_dealer', 'U') IS NULL
 BEGIN
     CREATE TABLE gold.dim_dealer (
@@ -130,16 +183,31 @@ BEGIN
     PRINT 'Table gold.dim_dealer created.';
 
     SET IDENTITY_INSERT gold.dim_dealer ON;
+
     IF NOT EXISTS (SELECT 1 FROM gold.dim_dealer WHERE Dealer_Key = 0)
     BEGIN
-        INSERT INTO gold.dim_dealer (Dealer_Key, Dealer_ID_Source, Dealer_Name, Dealer_Location, Dealer_Region, DWH_Gold_Insert_Timestamp, DWH_Gold_Update_Timestamp)
-        VALUES (0, 'UNKNOWN_DEALER_ID', 'Unknown Dealer', 'Unknown Location', 'Unknown Region', GETDATE(), GETDATE());
+        INSERT INTO gold.dim_dealer (
+            Dealer_Key, Dealer_ID_Source, Dealer_Name, Dealer_Location, Dealer_Region,
+            DWH_Gold_Insert_Timestamp, DWH_Gold_Update_Timestamp
+        )
+        VALUES (
+            0, 'UNKNOWN_DEALER_ID', 'Unknown Dealer', 'Unknown Location', 'Unknown Region',
+            GETDATE(), GETDATE()
+        );
     END
+
     IF NOT EXISTS (SELECT 1 FROM gold.dim_dealer WHERE Dealer_Key = -1)
     BEGIN
-        INSERT INTO gold.dim_dealer (Dealer_Key, Dealer_ID_Source, Dealer_Name, Dealer_Location, Dealer_Region, DWH_Gold_Insert_Timestamp, DWH_Gold_Update_Timestamp)
-        VALUES (-1, 'NA_DEALER_ID', 'Not Applicable Dealer', 'N/A Location', 'N/A Region', GETDATE(), GETDATE());
+        INSERT INTO gold.dim_dealer (
+            Dealer_Key, Dealer_ID_Source, Dealer_Name, Dealer_Location, Dealer_Region,
+            DWH_Gold_Insert_Timestamp, DWH_Gold_Update_Timestamp
+        )
+        VALUES (
+            -1, 'NA_DEALER_ID', 'Not Applicable Dealer', 'N/A Location', 'N/A Region',
+            GETDATE(), GETDATE()
+        );
     END
+
     SET IDENTITY_INSERT gold.dim_dealer OFF;
     PRINT 'Default records for gold.dim_dealer inserted.';
 END
@@ -149,6 +217,7 @@ BEGIN
 END
 GO
 
+-- Tabel fact_penjualan
 IF OBJECT_ID('gold.fact_penjualan', 'U') IS NULL
 BEGIN
     CREATE TABLE gold.fact_penjualan (
@@ -177,5 +246,6 @@ BEGIN
 END
 GO
 
+-- Penutup
 PRINT 'Gold layer DDL script execution completed.';
 GO
