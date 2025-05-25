@@ -113,7 +113,7 @@ pt-mobilita-nusantara-dw/
 Proyek ini dilisensikan di bawah [MIT License](LICENSE). Anda bebas menggunakan, memodifikasi, dan membagikan proyek ini dengan atribusi yang sesuai.
 
 ---
-## ✨ Kontributor (Contoh)
+## ✨ Kontributor
 
 * Arafi Ramadhan Maulana
 * Rayan Koemi Karuby
