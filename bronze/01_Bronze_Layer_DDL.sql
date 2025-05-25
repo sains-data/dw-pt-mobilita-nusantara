@@ -34,4 +34,5 @@ INSERT INTO raw_car_sales_transactions (
 );
 
 -- Melihat 10 data pertama
-SELECT * FROM raw_car_sales_transactions LIMIT 10;
+SELECT * FROM raw_car_sales_transactions;
+
