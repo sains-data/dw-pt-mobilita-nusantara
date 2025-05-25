@@ -215,6 +215,3 @@ BEGIN
     END CATCH
 END
 GO
-
-*/
-GO
