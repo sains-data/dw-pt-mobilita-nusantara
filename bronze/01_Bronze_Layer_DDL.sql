@@ -1,20 +1,38 @@
-CREATE TABLE raw_car_sales_transactions (
-    car_id NVARCHAR(255),
-    transaction_date NVARCHAR(50),
-    customer_name NVARCHAR(255),
-    gender NVARCHAR(50),
-    annual_income INT,
-    dealer_name NVARCHAR(255),
-    car_brand NVARCHAR(255),
-    car_model NVARCHAR(255),
-    engine_type NVARCHAR(255),
-    transmission_type NVARCHAR(50),
-    car_color NVARCHAR(50),
-    price_usd INT,
-    dealer_no NVARCHAR(50),
-    body_style NVARCHAR(100),
-    phone_number BIGINT,
-    dealer_region NVARCHAR(100),
-    tanggal_ingesti_bronze DATETIME DEFAULT GETDATE(),
-    nama_file_sumber NVARCHAR(255)
+-- Pastikan Anda berada di database yang benar: pt-mobilita-nusantara
+USE [pt-mobilita-nusantara];
+GO
+
+-- Buat skema bronze jika belum ada
+IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'bronze')
+BEGIN
+    EXEC('CREATE SCHEMA bronze');
+END
+GO
+
+-- Hapus tabel jika sudah ada
+IF OBJECT_ID('bronze.raw_car_sales_transactions', 'U') IS NOT NULL
+    DROP TABLE bronze.raw_car_sales_transactions;
+GO
+
+-- Buat tabel baru sesuai dengan struktur data sumber Anda
+CREATE TABLE bronze.raw_car_sales_transactions (
+    Car_id VARCHAR(255),        -- Dari sumber Anda
+    [Date] DATE,                -- Dari sumber Anda (gunakan kurung siku jika nama kolom adalah 'Date')
+    [Customer Name] VARCHAR(255), -- Dari sumber Anda
+    Gender VARCHAR(50),           -- Dari sumber Anda
+    [Annual Income] VARCHAR(255), -- Dari sumber Anda (pertimbangkan DECIMAL jika ini angka)
+    Dealer_Name VARCHAR(255),     -- Dari sumber Anda
+    Company VARCHAR(255),         -- Dari sumber Anda
+    Model VARCHAR(255),           -- Dari sumber Anda
+    Engine VARCHAR(255),          -- Dari sumber Anda
+    Transmission VARCHAR(255),    -- Dari sumber Anda
+    Color VARCHAR(255),           -- Dari sumber Anda
+    [Price ($)] VARCHAR(255),     -- Dari sumber Anda (pertimbangkan DECIMAL jika ini angka)
+    [Dealer_No] VARCHAR(255),   -- Dari sumber Anda
+    [Body Style] VARCHAR(255),    -- Dari sumber Anda
+    Phone VARCHAR(50),            -- Dari sumber Anda
+    Dealer_Region VARCHAR(255)    -- Dari sumber Anda
 );
+GO
+
+SELECT 'Tabel bronze.raw_car_sales_transactions berhasil dibuat dengan struktur baru.' AS Status;
