@@ -3,16 +3,28 @@ USE [pt-mobilita-nusantara];
 GO
 
 -- Membuat atau Mengubah Stored Procedure untuk memuat data ke Silver Layer
-CREATE OR ALTER PROCEDURE dbo.LoadSilverLayerCarSalesTransactions
+CREATE OR ALTER PROCEDURE dbo.LoadSilverLayerCarSalesTransactions_V2
 AS
 BEGIN
     SET NOCOUNT ON;
 
-    -- Opsional: Kosongkan tabel silver sebelum memuat data baru (jika Anda ingin refresh total setiap kali)
-    -- Jika Anda ingin melakukan pembaruan inkremental, logika ini perlu lebih kompleks (misalnya dengan MERGE)
-    TRUNCATE TABLE silver.transformed_car_sales_transactions;
+    PRINT '--- Memulai Proses LoadSilverLayerCarSalesTransactions_V2 ---';
 
-    -- Memasukkan data dari tabel bronze ke tabel silver dengan transformasi
+    DECLARE @BronzeCount INT;
+    SELECT @BronzeCount = COUNT(*) FROM bronze.raw_car_sales_transactions;
+    PRINT 'Jumlah baris di bronze.raw_car_sales_transactions: ' + CAST(@BronzeCount AS VARCHAR(10));
+
+    IF @BronzeCount = 0
+    BEGIN
+        PRINT 'PERINGATAN: Tidak ada data di bronze.raw_car_sales_transactions. Proses pemuatan ke silver dihentikan.';
+        RETURN; -- Keluar dari prosedur jika bronze kosong
+    END
+
+    -- Opsional: Kosongkan tabel silver sebelum memuat data baru
+    TRUNCATE TABLE silver.transformed_car_sales_transactions;
+    PRINT 'Tabel silver.transformed_car_sales_transactions telah di-TRUNCATE.';
+
+    PRINT 'Mencoba INSERT ke silver.transformed_car_sales_transactions...';
     INSERT INTO silver.transformed_car_sales_transactions (
         Car_ID,
         Sales_Date,
@@ -33,44 +45,48 @@ BEGIN
         Sales_Year,
         Sales_Month,
         Sales_Day
-        -- Last_Updated akan diisi oleh DEFAULT GETDATE()
+        -- Last_Updated akan diisi oleh DEFAULT GETDATE() dari definisi tabel
     )
     SELECT
-        b.Car_id,                               -- Dari bronze.raw_car_sales_transactions
-        b.[Date],                               -- Dari bronze.raw_car_sales_transactions
-        b.[Customer Name],                      -- Dari bronze.raw_car_sales_transactions
-        b.Gender,                               -- Dari bronze.raw_car_sales_transactions
-        TRY_CONVERT(DECIMAL(18, 2), REPLACE(REPLACE(b.[Annual Income], '$', ''), ',', '')), -- Konversi dan bersihkan Annual Income
-        b.Dealer_Name,                          -- Dari bronze.raw_car_sales_transactions
+        b.Car_id,                               -- Kolom dari bronze
+        b.[Date],                               -- Kolom dari bronze
+        b.[Customer Name],                      -- Kolom dari bronze
+        b.Gender,                               -- Kolom dari bronze
+        TRY_CONVERT(DECIMAL(18, 2), REPLACE(REPLACE(b.[Annual Income], '$', ''), ',', '')), -- Konversi Annual Income
+        b.Dealer_Name,                          -- Kolom dari bronze
         b.Company,                              -- Menggunakan Company dari bronze sebagai Car_Make
-        b.Model,                                -- Dari bronze.raw_car_sales_transactions
-        b.Engine,                               -- Dari bronze.raw_car_sales_transactions
-        b.Transmission,                         -- Dari bronze.raw_car_sales_transactions
-        b.Color,                                -- Dari bronze.raw_car_sales_transactions
-        TRY_CONVERT(DECIMAL(18, 2), REPLACE(REPLACE(b.[Price ($)], '$', ''), ',', '')), -- Konversi dan bersihkan Price ($)
-        b.[Dealer_No],                          -- Dari bronze.raw_car_sales_transactions
-        b.[Body Style],                         -- Dari bronze.raw_car_sales_transactions
-        b.Phone,                                -- Dari bronze.raw_car_sales_transactions
-        b.Dealer_Region,                        -- Dari bronze.raw_car_sales_transactions
+        b.Model,                                -- Kolom dari bronze
+        b.Engine,                               -- Kolom dari bronze
+        b.Transmission,                         -- Kolom dari bronze
+        b.Color,                                -- Kolom dari bronze
+        TRY_CONVERT(DECIMAL(18, 2), REPLACE(REPLACE(b.[Price ($)], '$', ''), ',', '')), -- Konversi Price
+        b.[Dealer_No],                          -- Kolom dari bronze
+        b.[Body Style],                         -- Kolom dari bronze
+        b.Phone,                                -- Kolom dari bronze
+        b.Dealer_Region,                        -- Kolom dari bronze
         YEAR(b.[Date]),                         -- Turunan: Tahun dari Sales_Date
         MONTH(b.[Date]),                        -- Turunan: Bulan dari Sales_Date
         DAY(b.[Date])                           -- Turunan: Hari dari Sales_Date
     FROM
         bronze.raw_car_sales_transactions AS b
     WHERE
-        b.Car_id IS NOT NULL AND b.Car_id != ''; -- Contoh filter sederhana, data yang tidak valid tidak dimasukkan
+        -- Filter dasar untuk memastikan data minimal yang diperlukan ada
+        b.Car_id IS NOT NULL AND b.Car_id != '' AND b.[Date] IS NOT NULL;
 
-    SELECT @@ROWCOUNT AS RowsLoadedIntoSilver;
+    DECLARE @RowsLoaded INT;
+    SET @RowsLoaded = @@ROWCOUNT;
+    PRINT 'Jumlah baris yang berhasil dimasukkan ke silver.transformed_car_sales_transactions: ' + CAST(@RowsLoaded AS VARCHAR(10));
 
+    IF @RowsLoaded = 0 AND @BronzeCount > 0
+    BEGIN
+        PRINT 'PERINGATAN PENTING: Tidak ada baris yang dimuat ke silver, meskipun bronze memiliki data. Periksa kondisi WHERE atau masalah konversi data yang mungkin membuat semua baris gagal (meskipun TRY_CONVERT seharusnya menghasilkan NULL).';
+        PRINT 'Coba jalankan bagian SELECT dari INSERT secara manual untuk melihat hasilnya.';
+    END
+    ELSE IF @RowsLoaded > 0
+    BEGIN
+        PRINT 'BERHASIL: Data telah dimuat ke silver.transformed_car_sales_transactions.';
+    END
+
+    PRINT '--- Proses LoadSilverLayerCarSalesTransactions_V2 Selesai ---';
 END
 GO
-
--- Cara Menjalankan Stored Procedure:
--- EXEC dbo.LoadSilverLayerCarSalesTransactions;
--- GO
-
--- Verifikasi data setelah Stored Procedure dijalankan (jalankan secara manual setelah EXEC)
--- SELECT TOP 100 * FROM silver.transformed_car_sales_transactions;
--- GO
--- SELECT COUNT(*) FROM silver.transformed_car_sales_transactions;
--- GO
