@@ -1,107 +1,45 @@
-IF NOT EXISTS (
-    SELECT name
-    FROM sys.schemas
-    WHERE name = 'silver'
-)
+-- Pastikan Anda berada di database yang benar: pt-mobilita-nusantara
+USE [pt-mobilita-nusantara];
+GO
+
+-- Buat skema silver jika belum ada
+IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'silver')
 BEGIN
-    EXEC ('CREATE SCHEMA silver');
+    EXEC('CREATE SCHEMA silver');
 END
 GO
 
-
-IF OBJECT_ID('silver.clean_sales_transactions', 'U') IS NULL
-BEGIN
-    CREATE TABLE silver.clean_sales_transactions (
-        transaction_id_source NVARCHAR(255) NOT NULL,
-        date_source DATE,
-        customer_id_source NVARCHAR(255),
-        car_id_source NVARCHAR(255),
-        dealer_id_source NVARCHAR(255),
-        sales_price_cleaned DECIMAL(18, 2),
-        discount_cleaned DECIMAL(18, 2) NULL,
-        net_sales_price DECIMAL(18, 2),
-        cost_price_cleaned DECIMAL(18, 2) NULL,
-        payment_type_standardized NVARCHAR(50),
-        dwh_silver_insert_timestamp DATETIME2(7) DEFAULT GETDATE(),
-        CONSTRAINT pk_clean_sales_transactions PRIMARY KEY (transaction_id_source)
-    );
-    PRINT 'Table silver.clean_sales_transactions created.';
-END
-ELSE
-BEGIN
-    PRINT 'Table silver.clean_sales_transactions already exists.';
-END
+-- Hapus tabel jika sudah ada
+IF OBJECT_ID('silver.transformed_car_sales_transactions', 'U') IS NOT NULL
+    DROP TABLE silver.transformed_car_sales_transactions;
 GO
 
+-- Buat tabel baru di silver layer dengan transformasi dan tipe data yang sesuai
+CREATE TABLE silver.transformed_car_sales_transactions (
+    -- Mengambil kolom dari bronze dan menyesuaikan tipe data atau nama jika perlu
+    Car_ID VARCHAR(255) PRIMARY KEY,    -- Sebelumnya Car_id, dijadikan Primary Key
+    Sales_Date DATE,                    -- Sebelumnya [Date]
+    Customer_Name VARCHAR(255),         -- Sebelumnya [Customer Name]
+    Gender VARCHAR(50),
+    Annual_Income DECIMAL(18, 2),       -- Sebelumnya [Annual Income] (VARCHAR), diubah ke DECIMAL
+    Dealer_Name VARCHAR(255),
+    Car_Make VARCHAR(255),              -- Sebelumnya Company
+    Car_Model VARCHAR(255),             -- Sebelumnya Model
+    Engine_Type VARCHAR(255),           -- Sebelumnya Engine
+    Transmission_Type VARCHAR(255),     -- Sebelumnya Transmission
+    Car_Color VARCHAR(255),             -- Sebelumnya Color
+    Sales_Price DECIMAL(18, 2),         -- Sebelumnya [Price ($)] (VARCHAR), diubah ke DECIMAL dan ganti nama
+    Dealer_Number VARCHAR(255),         -- Sebelumnya [Dealer_No]
+    Body_Style VARCHAR(255),            -- Sebelumnya [Body Style]
+    Customer_Phone VARCHAR(50),         -- Sebelumnya Phone
+    Dealer_Region VARCHAR(255),
 
-IF OBJECT_ID('silver.conformed_customers', 'U') IS NULL
-BEGIN
-    CREATE TABLE silver.conformed_customers (
-        customer_id_source NVARCHAR(255) NOT NULL,
-        customer_name_cleaned NVARCHAR(255),
-        gender_standardized NVARCHAR(10),
-        age_cleaned INT NULL,
-        full_address NVARCHAR(500) NULL,
-        city_cleaned NVARCHAR(100),
-        state_cleaned NVARCHAR(100) NULL,
-        zip_code_cleaned NVARCHAR(20) NULL,
-        phone_formatted NVARCHAR(50) NULL,
-        email_validated NVARCHAR(255) NULL,
-        annual_income_cleaned DECIMAL(18, 2) NULL,
-        dwh_silver_insert_timestamp DATETIME2(7) DEFAULT GETDATE(),
-        CONSTRAINT pk_conformed_customers PRIMARY KEY (customer_id_source)
-    );
-    PRINT 'Table silver.conformed_customers created.';
-END
-ELSE
-BEGIN
-    PRINT 'Table silver.conformed_customers already exists.';
-END
+    -- Kolom tambahan yang mungkin berguna di silver layer (contoh)
+    Sales_Year INT,
+    Sales_Month INT,
+    Sales_Day INT,
+    Last_Updated DATETIME DEFAULT GETDATE() -- Untuk melacak kapan baris terakhir diupdate
+);
 GO
 
-
-IF OBJECT_ID('silver.conformed_vehicles', 'U') IS NULL
-BEGIN
-    CREATE TABLE silver.conformed_vehicles (
-        car_id_source NVARCHAR(255) NOT NULL,
-        make_standardized NVARCHAR(100),
-        model_standardized NVARCHAR(100),
-        year_production INT,
-        color_cleaned NVARCHAR(50),
-        body_style_standardized NVARCHAR(50),
-        engine_type_cleaned NVARCHAR(50) NULL,
-        transmission_standardized NVARCHAR(50),
-        fuel_type_standardized NVARCHAR(50) NULL,
-        mileage_cleaned INT NULL,
-        dwh_silver_insert_timestamp DATETIME2(7) DEFAULT GETDATE(),
-        CONSTRAINT pk_conformed_vehicles PRIMARY KEY (car_id_source)
-    );
-    PRINT 'Table silver.conformed_vehicles created.';
-END
-ELSE
-BEGIN
-    PRINT 'Table silver.conformed_vehicles already exists.';
-END
-GO
-
-
-IF OBJECT_ID('silver.conformed_dealers', 'U') IS NULL
-BEGIN
-    CREATE TABLE silver.conformed_dealers (
-        dealer_id_source NVARCHAR(255) NOT NULL,
-        dealer_name_cleaned NVARCHAR(255),
-        dealer_location_cleaned NVARCHAR(255) NULL,
-        dealer_region_standardized NVARCHAR(100) NULL,
-        dwh_silver_insert_timestamp DATETIME2(7) DEFAULT GETDATE(),
-        CONSTRAINT pk_conformed_dealers PRIMARY KEY (dealer_id_source)
-    );
-    PRINT 'Table silver.conformed_dealers created.';
-END
-ELSE
-BEGIN
-    PRINT 'Table silver.conformed_dealers already exists.';
-END
-GO
-
-PRINT 'Silver layer DDL script execution completed.';
-GO
+SELECT 'Tabel silver.transformed_car_sales_transactions berhasil dibuat.' AS Status;
