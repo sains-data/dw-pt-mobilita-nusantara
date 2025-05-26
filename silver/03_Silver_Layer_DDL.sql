@@ -1,20 +1,20 @@
--- Pastikan Anda berada di database yang benar: pt-mobilita-nusantara
+
 USE [pt-mobilita-nusantara];
 GO
 
--- Buat skema silver jika belum ada
+
 IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'silver')
 BEGIN
     EXEC('CREATE SCHEMA silver');
 END
 GO
 
--- Hapus tabel jika sudah ada
+
 IF OBJECT_ID('silver.transformed_car_sales_transactions', 'U') IS NOT NULL
     DROP TABLE silver.transformed_car_sales_transactions;
 GO
 
--- Buat tabel baru di silver layer dengan transformasi dan tipe data yang sesuai
+
 CREATE TABLE silver.transformed_car_sales_transactions (
     Car_ID VARCHAR(255) PRIMARY KEY,
     Sales_Date DATE,
