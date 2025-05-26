@@ -10,7 +10,7 @@ Arsitektur data untuk proyek ini mengikuti **Medallion Architecture** dengan lap
 
 ![Arsitektur Data Warehouse PT Mobilita Nusantara](docs/images_architecture.png)
 
-1.  **Bronze Layer**: Menyimpan data mentah apa adanya dari sistem sumber. Data di-ingest dari file CSV (`Car Sales.xlsx - car_data.csv`) ke dalam Database SQL Server.
+1.  **Bronze Layer**: Menyimpan data mentah apa adanya dari sistem sumber. Data di-ingest dari file CSV (`car_data.csv`) ke dalam Database SQL Server.
 2.  **Silver Layer**: Lapisan ini mencakup proses pembersihan data, standarisasi, dan normalisasi dasar untuk menyiapkan data untuk analisis.
 3.  **Gold Layer**: Menampung data yang siap untuk bisnis, dimodelkan ke dalam star schema yang diperlukan untuk pelaporan dan analitik.
 
