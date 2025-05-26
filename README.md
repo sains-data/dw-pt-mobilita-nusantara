@@ -53,7 +53,7 @@ Mengembangkan data warehouse modern menggunakan SQL Server untuk mengkonsolidasi
 * Mengintegrasikan data penjualan dari berbagai sumber (konseptual, dimulai dengan CSV).
 
 #### Spesifikasi
-* **Sumber Data**: Impor data dari sistem sumber utama yang disediakan sebagai file CSV (`Car Sales.xlsx - car_data.csv`).
+* **Sumber Data**: Impor data dari sistem sumber utama yang disediakan sebagai file CSV (`car_data.csv`).
 * **Kualitas Data**: Membersihkan dan menyelesaikan masalah kualitas data sebelum analisis di Silver Layer.
 * **Integrasi**: (Untuk saat ini) Fokus pada pemrosesan sumber CSV tunggal. Desain harus mempertimbangkan integrasi sumber data tambahan di masa depan.
 * **Pemodelan Data**: Data akan dimodelkan menjadi Star Schema di Gold Layer, dengan tabel fakta `Fact_Penjualan` dan dimensi seperti `Dim_Pelanggan`, `Dim_Kendaraan`, `Dim_Dealer`, dan `Dim_Waktu`.
