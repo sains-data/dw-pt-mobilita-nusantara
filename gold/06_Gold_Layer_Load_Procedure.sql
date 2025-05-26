@@ -1,9 +1,7 @@
--- Pastikan Anda berada di database yang benar: pt-mobilita-nusantara
 USE [pt-mobilita-nusantara];
 GO
 
--- Membuat atau Mengubah Stored Procedure untuk memuat data ke Gold Layer
-CREATE OR ALTER PROCEDURE dbo.LoadGoldLayerData_V2 -- Menggunakan V2 untuk menandai versi revisi
+CREATE OR ALTER PROCEDURE dbo.LoadGoldLayerData_V2 
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -19,15 +17,8 @@ BEGIN
         PRINT 'PERINGATAN: Tidak ada data di silver.transformed_car_sales_transactions. Proses pemuatan ke gold dihentikan.';
         RETURN;
     END
-
-    --------------------------------------------------------------------------
-    -- 1. Populasi gold.dim_date
-    --------------------------------------------------------------------------
+   
     PRINT 'Memulai populasi gold.dim_date...';
-    -- Jika Anda ingin dim_date di-refresh total setiap kali, uncomment TRUNCATE di bawah.
-    -- Jika tidak, hanya tanggal baru yang akan ditambahkan.
-    -- TRUNCATE TABLE gold.dim_date;
-    -- PRINT 'Tabel gold.dim_date telah di-TRUNCATE (jika diaktifkan).';
 
     INSERT INTO gold.dim_date (date_key, [date], year, month, day, weekday, month_name, quarter)
     SELECT DISTINCT
@@ -50,9 +41,6 @@ BEGIN
         AND s.Sales_Date IS NOT NULL;
     PRINT CAST(@@ROWCOUNT AS VARCHAR(10)) + ' baris baru ditambahkan ke gold.dim_date.';
 
-    --------------------------------------------------------------------------
-    -- 2. Populasi gold.dim_car
-    --------------------------------------------------------------------------
     PRINT 'Memulai populasi gold.dim_car...';
     MERGE gold.dim_car AS Target
     USING (
@@ -73,21 +61,18 @@ BEGIN
         VALUES (Source.Car_ID, Source.Car_Make, Source.Car_Model, Source.Engine_Type, Source.Transmission_Type, Source.Car_Color, Source.Body_Style);
     PRINT CAST(@@ROWCOUNT AS VARCHAR(10)) + ' baris terpengaruh (INSERT/UPDATE) di gold.dim_car.';
 
-    --------------------------------------------------------------------------
-    -- 3. Populasi gold.dim_dealer (Dengan Perbaikan Duplikasi)
-    --------------------------------------------------------------------------
     PRINT 'Memulai populasi gold.dim_dealer...';
     MERGE gold.dim_dealer AS Target
     USING (
-        SELECT Dealer_Number, Dealer_Name, Dealer_Region -- Ambil atribut yang relevan
+        SELECT Dealer_Number, Dealer_Name, Dealer_Region -
         FROM (
             SELECT
                 Dealer_Number, Dealer_Name, Dealer_Region,
-                ROW_NUMBER() OVER(PARTITION BY Dealer_Number ORDER BY Dealer_Name, Dealer_Region) as rn -- Urutkan untuk konsistensi jika ada beberapa nama/region untuk 1 nomor
+                ROW_NUMBER() OVER(PARTITION BY Dealer_Number ORDER BY Dealer_Name, Dealer_Region) as rn
             FROM silver.transformed_car_sales_transactions
-            WHERE Dealer_Number IS NOT NULL AND Dealer_Number != '' -- Pastikan dealer number valid
+            WHERE Dealer_Number IS NOT NULL AND Dealer_Number != '' 
         ) AS RankedDealers
-        WHERE rn = 1 -- Ambil hanya satu baris unik per Dealer_Number
+        WHERE rn = 1
     ) AS Source
     ON Target.dealer_number = Source.Dealer_Number
     WHEN MATCHED THEN
@@ -99,19 +84,15 @@ BEGIN
         VALUES (Source.Dealer_Number, Source.Dealer_Name, Source.Dealer_Region);
     PRINT CAST(@@ROWCOUNT AS VARCHAR(10)) + ' baris terpengaruh (INSERT/UPDATE) di gold.dim_dealer.';
 
-    --------------------------------------------------------------------------
-    -- 4. Populasi gold.dim_customer
-    --------------------------------------------------------------------------
     PRINT 'Memulai populasi gold.dim_customer...';
     MERGE gold.dim_customer AS Target
     USING (
         SELECT DISTINCT
             Customer_Name, Gender, Annual_Income, Customer_Phone
         FROM silver.transformed_car_sales_transactions
-        WHERE (Customer_Name IS NOT NULL AND Customer_Name != '') OR (Customer_Phone IS NOT NULL AND Customer_Phone != '') -- Minimal ada nama atau telepon
+        WHERE (Customer_Name IS NOT NULL AND Customer_Name != '') OR (Customer_Phone IS NOT NULL AND Customer_Phone != '') 
     ) AS Source
-    ON Target.customer_name = Source.Customer_Name AND ISNULL(Target.customer_phone, 'N/A') = ISNULL(Source.Customer_Phone, 'N/A') -- Mencocokkan berdasarkan nama dan telepon (handle NULL pada telepon)
-    WHEN MATCHED THEN
+    ON Target.customer_name = Source.Customer_Name AND ISNULL(Target.customer_phone, 'N/A') = ISNULL(Source.Customer_Phone, 'N/A') 
         UPDATE SET
             Target.gender = Source.Gender,
             Target.annual_income = Source.Annual_Income
@@ -120,9 +101,6 @@ BEGIN
         VALUES (Source.Customer_Name, Source.Gender, Source.Annual_Income, Source.Customer_Phone);
     PRINT CAST(@@ROWCOUNT AS VARCHAR(10)) + ' baris terpengaruh (INSERT/UPDATE) di gold.dim_customer.';
 
-    --------------------------------------------------------------------------
-    -- 5. Populasi gold.fact_car_sales
-    --------------------------------------------------------------------------
     PRINT 'Memulai populasi gold.fact_car_sales...';
     TRUNCATE TABLE gold.fact_car_sales;
     PRINT 'Tabel gold.fact_car_sales telah di-TRUNCATE.';
@@ -139,7 +117,7 @@ BEGIN
         s.Sales_Price
     FROM
         silver.transformed_car_sales_transactions s
-    INNER JOIN -- Menggunakan INNER JOIN untuk memastikan semua kunci ditemukan
+    INNER JOIN 
         gold.dim_date dd ON dd.date_key = CONVERT(INT, CONVERT(VARCHAR(8), s.Sales_Date, 112))
     INNER JOIN
         gold.dim_car dc ON dc.car_id = s.Car_ID
@@ -148,7 +126,7 @@ BEGIN
     INNER JOIN
         gold.dim_customer dcu ON dcu.customer_name = s.Customer_Name AND ISNULL(dcu.customer_phone, 'N/A') = ISNULL(s.Customer_Phone, 'N/A')
     WHERE
-        s.Sales_Price IS NOT NULL; -- Pastikan ada harga jual untuk fakta
+        s.Sales_Price IS NOT NULL; 
 
     PRINT CAST(@@ROWCOUNT AS VARCHAR(10)) + ' baris berhasil dimasukkan ke gold.fact_car_sales.';
     PRINT '--- Proses LoadGoldLayerData_V2 Selesai ---';
