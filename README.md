@@ -35,7 +35,7 @@ Proyek ini melibatkan:
 ---
 ## 🛠️ Sumber Daya & Alat Penting:
 
-* **Dataset**: Akses ke dataset proyek (file `Car Sales.xlsx - car_data.csv` akan ditempatkan di folder `datasets/`).
+* **Dataset**: Akses ke dataset proyek (file `car_data.csv` akan ditempatkan di folder `datasets/`).
 * **SQL Server Express**: Server ringan untuk menghosting database SQL Anda.
 * **SQL Server Management Studio (SSMS)**: GUI untuk mengelola dan berinteraksi dengan database.
 * **Git Repository**: Siapkan akun dan repositori GitHub untuk mengelola, membuat versi, dan berkolaborasi pada kode Anda secara efisien.
