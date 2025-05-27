@@ -97,10 +97,6 @@ pt-mobilita-nusantara-dw/
 │       ├── 05_Gold_Layer_DDL.sql
 │       └── 06_Gold_Layer_Load_Procedure.sql
 │
-├── tests/                             # Skrip untuk pengujian kualitas data
-│   ├── 07_Quality_Checks_Silver.sql
-│   └── 08_Quality_Checks_Gold.sql
-│
 ├── README.md                          # Dokumentasi utama proyek
 ├── LICENSE                            # Lisensi proyek (misalnya: MIT)
 └── .gitignore                         # Daftar file dan direktori yang diabaikan oleh Git
