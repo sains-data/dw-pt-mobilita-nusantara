@@ -1,4 +1,3 @@
--- File: 06_Gold_Layer_Load_Procedure.sql (Versi dbo.LoadGoldLayerData_V2 Direvisi)
 USE [pt-mobilita-nusantara];
 GO
 
@@ -14,7 +13,6 @@ BEGIN
    IF @SilverCount = 0 BEGIN PRINT 'PERINGATAN: Tidak ada data di silver. Proses dihentikan.'; RETURN; END
 
    PRINT 'Memulai populasi gold.dim_date...';
-   -- Opsional: TRUNCATE TABLE gold.dim_date; -- Jika ingin refresh total dim_date
    INSERT INTO gold.dim_date (date_key, [date], year, month, day, weekday, month_name, quarter)
    SELECT DISTINCT 
           CONVERT(INT, CONVERT(VARCHAR(8), s.Sales_Date, 112)), 
