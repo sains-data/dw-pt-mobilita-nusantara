@@ -1,4 +1,3 @@
--- File: 01_Bronze_Layer_DDL.sql (Versi Disesuaikan)
 USE [pt-mobilita-nusantara];
 GO
 
