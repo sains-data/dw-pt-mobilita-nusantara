@@ -58,7 +58,6 @@ Script ini (`01_Bronze_Layer_DDL.sql`) mendefinisikan tabel `bronze.raw_car_sale
 4. Salin dan tempel kode di bawah ini, lalu eksekusi (tekan F5 atau tombol Execute).
 
 ```sql
--- File: 01_Bronze_Layer_DDL.sql (Versi Disesuaikan)
 USE [pt-mobilita-nusantara];
 GO
 
@@ -111,13 +110,8 @@ Script ini memindahkan data dari tabel hasil impor (`[Car Sales#xlsx - car_data$
 3. Eksekusi script.
 
 ```sql
--- File: (Pengganti untuk 02_Bronze_Layer_Load_Procedure.sql)
 USE [pt-mobilita-nusantara];
 GO
-
--- Opsional: Kosongkan tabel bronze sebelum memuat data baru.
--- TRUNCATE TABLE bronze.raw_car_sales_transactions;
--- GO
 
 INSERT INTO bronze.raw_car_sales_transactions (
    Car_id, [Date], [Customer Name], Gender, [Annual Income], Dealer_Name,
@@ -153,7 +147,6 @@ Script ini (`03_Silver_Layer_DDL.sql`) mendefinisikan tabel `silver.transformed_
 2. Salin dan tempel kode di bawah ini, lalu eksekusi.
 
 ```sql
--- File: 03_Silver_Layer_DDL.sql (Versi Disesuaikan)
 USE [pt-mobilita-nusantara];
 GO
 
@@ -206,7 +199,6 @@ Script ini (`04_Silver_Layer_Load_Procedure.sql`) membuat stored procedure `dbo.
 2. Salin dan tempel kode di bawah ini, lalu eksekusi untuk membuat stored procedure.
 
 ```sql
--- File: 04_Silver_Layer_Load_Procedure.sql (Versi dbo.LoadSilverLayerCarSalesTransactions_V2)
 USE [pt-mobilita-nusantara];
 GO
 
@@ -273,7 +265,6 @@ GO
 EXEC dbo.LoadSilverLayerCarSalesTransactions_V2;
 GO
 
--- Verifikasi Data di Silver
 SELECT COUNT(*) AS TotalRowsInSilver FROM silver.transformed_car_sales_transactions;
 SELECT TOP 10 * FROM silver.transformed_car_sales_transactions;
 GO
@@ -294,7 +285,6 @@ Script ini (`05_Gold_Layer_DDL.sql`) mendefinisikan tabel dimensi dan fakta untu
 2. Salin dan tempel kode di bawah ini, lalu eksekusi.
 
 ```sql
--- File: 05_Gold_Layer_DDL.sql (Versi Disesuaikan dan Direvisi)
 USE [pt-mobilita-nusantara];
 GO
 
@@ -386,7 +376,6 @@ Script ini (`06_Gold_Layer_Load_Procedure.sql`) membuat stored procedure `dbo.Lo
 2. Salin dan tempel kode di bawah ini, lalu eksekusi untuk membuat stored procedure.
 
 ```sql
--- File: 06_Gold_Layer_Load_Procedure.sql (Versi dbo.LoadGoldLayerData_V2 Direvisi)
 USE [pt-mobilita-nusantara];
 GO
 
@@ -504,7 +493,6 @@ GO
 EXEC dbo.LoadGoldLayerData_V2;
 GO
 
--- Verifikasi Data di Gold
 SELECT 'dim_date' AS TableName, COUNT(*) AS TotalRows FROM gold.dim_date UNION ALL
 SELECT 'dim_car', COUNT(*) FROM gold.dim_car UNION ALL
 SELECT 'dim_dealer', COUNT(*) FROM gold.dim_dealer UNION ALL
