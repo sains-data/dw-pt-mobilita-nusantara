@@ -1,4 +1,3 @@
--- File: 05_Gold_Layer_DDL.sql (Versi Disesuaikan dan Direvisi)
 USE [pt-mobilita-nusantara];
 GO
 
